@@ -1,0 +1,3 @@
+/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir

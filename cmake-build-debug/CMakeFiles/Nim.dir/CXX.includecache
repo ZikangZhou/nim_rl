@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/zhouzikang/CLionProjects/Nim/game.cpp
+game.h
+/Users/zhouzikang/CLionProjects/Nim/game.h
+
+/Users/zhouzikang/CLionProjects/Nim/game.h
+player.h
+/Users/zhouzikang/CLionProjects/Nim/player.h
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
+
+/Users/zhouzikang/CLionProjects/Nim/player.h
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
+
+/Users/zhouzikang/CLionProjects/Nim/state.cpp
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
+
+/Users/zhouzikang/CLionProjects/Nim/state.h
+stdexcept
+-
+utility
+-
+vector
+-
+
