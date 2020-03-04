@@ -7,6 +7,11 @@ CMakeFiles/Nim.dir/game.cpp.o: ../player.h
 CMakeFiles/Nim.dir/game.cpp.o: ../state.h
 
 CMakeFiles/Nim.dir/main.cpp.o: ../main.cpp
+CMakeFiles/Nim.dir/main.cpp.o: ../state.h
+
+CMakeFiles/Nim.dir/player.cpp.o: ../player.cpp
+CMakeFiles/Nim.dir/player.cpp.o: ../player.h
+CMakeFiles/Nim.dir/player.cpp.o: ../state.h
 
 CMakeFiles/Nim.dir/state.cpp.o: ../state.cpp
 CMakeFiles/Nim.dir/state.cpp.o: ../state.h

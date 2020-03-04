@@ -2,45 +2,63 @@
 // Created by 周梓康 on 2020/3/3.
 //
 
-#ifndef NIM_STATE_H
-#define NIM_STATE_H
+#ifndef NIM_STATE_H_
+#define NIM_STATE_H_
 
+#include <exception>
+#include <initializer_list>
+#include <iostream>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
 class State {
-public:
-    State() = default;
+ public:
+  State() = default;
 
-    explicit State(std::vector<unsigned> state);
+  explicit State(std::istream &is);
 
-    bool empty() const { return state_.empty(); }
+  State(std::initializer_list<unsigned> state);
 
-    std::vector<unsigned> &get() { return state_; }
+  explicit State(std::vector<unsigned> state);
 
-    const std::vector<unsigned> &get() const { return state_; }
+  State(const State &) = default;
 
-    unsigned &get(std::vector<unsigned>::size_type pile_id);
+  State &operator=(const State &) = default;
 
-    const unsigned &get(std::vector<unsigned>::size_type pile_id) const;
+  State &operator=(std::initializer_list<unsigned> state);
 
-    std::vector<unsigned>::size_type size() const { return state_.size(); }
+  State &operator=(const std::vector<unsigned> &state);
 
-    void set(std::vector<unsigned>::size_type pile_id, unsigned num_objects);
+  ~State() = default;
 
-    void set(const std::vector<unsigned> &state);
+  void clear() { state_.clear(); }
 
-    unsigned &operator[](std::vector<unsigned>::size_type pile_id) {
-        return state_[pile_id];
-    }
+  bool empty() const { return state_.empty(); }
 
-    const unsigned &operator[](std::vector<unsigned>::size_type pile_id) const {
-        return state_[pile_id];
-    }
+  std::vector<unsigned> &get() { return state_; }
 
-private:
-    std::vector<unsigned> state_{1, 1, 1};
+  const std::vector<unsigned> &get() const { return state_; }
+
+  void push_back(unsigned num_objects) { state_.push_back(num_objects); }
+
+  void RemoveObjects(std::vector<unsigned>::size_type pile_id,
+                     unsigned num_objects);
+
+  std::vector<unsigned>::size_type size() const { return state_.size(); }
+
+  unsigned &operator[](std::vector<unsigned>::size_type pile_id);
+
+  const unsigned &operator[](std::vector<unsigned>::size_type pile_id) const;
+
+ private:
+  std::vector<unsigned> state_;
 };
 
-#endif //NIM_STATE_H
+std::istream &operator>>(std::istream &is, State &state);
+
+std::ostream &operator<<(std::ostream &os, const State &state);
+
+#endif  // NIM_STATE_H_
