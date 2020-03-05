@@ -4,24 +4,34 @@
 
 #include "game.h"
 
-Game::Game(const State &state) : state_(state), first_player_(nullptr),
-                                 second_player_(nullptr) {
+Game::Game(const State &state) : state_(state) {
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: State is empty." << std::endl;
   }
 }
 
-Game::Game(const State &state, Player *first_player, Player *second_player)
-    : state_(state), first_player_(first_player),
-      second_player_(second_player) {
+Game::Game(State state, std::shared_ptr<Player> first_player,
+           std::shared_ptr<Player> second_player) :
+    state_(std::move(state)),
+    first_player_(std::move(first_player)),
+    second_player_(std::move(second_player)) {
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: State is empty." << std::endl;
   }
 }
 
-Game::~Game() {
-  delete first_player_;
-  delete second_player_;
+Game::Game(Game &&game) noexcept :
+    state_(std::move(game.state_)),
+    first_player_(std::move(game.first_player_)),
+    second_player_(std::move(game.second_player_)) {
+  game.state_ = {};
+  game.first_player_.reset();
+  game.second_player_.reset();
+}
+
+Game &Game::operator=(Game game) {
+  swap(*this, game);
+  return *this;
 }
 
 bool Game::GameOver() const {
@@ -35,6 +45,9 @@ bool Game::GameOver() const {
 }
 
 void Game::Run() {
+  if (!first_player_ || !second_player_) {
+    throw std::runtime_error("Player should not be nullptr");
+  }
   do {
     first_player_->Action(&state_);
     if (GameOver()) {

@@ -5,6 +5,8 @@
 #ifndef NIM_GAME_H_
 #define NIM_GAME_H_
 
+#include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -13,18 +15,23 @@
 #include "state.h"
 
 class Game {
+  friend void swap(Game &, Game &);
+
  public:
   Game() = default;
 
   explicit Game(const State &state);
 
-  Game(const State &state, Player *first_player, Player *second_player);
+  Game(State state, std::shared_ptr<Player> first_player,
+       std::shared_ptr<Player> second_player);
 
-  Game(const Game &) = delete;
+  Game(const Game &) = default;
 
-  Game &operator=(const Game &) = delete;
+  Game(Game &&game) noexcept;
 
-  ~Game();
+  Game &operator=(Game game);
+
+  ~Game() = default;
 
   bool GameOver() const;
 
@@ -32,22 +39,23 @@ class Game {
 
   const std::vector<unsigned> &get_state() const { return state_.get(); }
 
-  unsigned &get_state(std::vector<unsigned>::size_type pile_id) {
+  unsigned &get_state(State::size_type pile_id) {
     return state_[pile_id];
   }
 
-  const unsigned &get_state(std::vector<unsigned>::size_type pile_id) const {
+  const unsigned &get_state(State::size_type pile_id) const {
     return state_[pile_id];
   }
 
-  void set_first_player(Player *first_player) { first_player_ = first_player; }
-
-  void set_second_player(Player *second_player) {
-    second_player_ = second_player;
+  void set_first_player(std::shared_ptr<Player> first_player) {
+    first_player_ = std::move(first_player);
   }
 
-  void set_state(std::vector<unsigned>::size_type pile_id,
-                 unsigned num_objects) {
+  void set_second_player(std::shared_ptr<Player> second_player) {
+    second_player_ = std::move(second_player);
+  }
+
+  void set_state(State::size_type pile_id, unsigned num_objects) {
     state_[pile_id] = num_objects;
   }
 
@@ -57,8 +65,15 @@ class Game {
 
  private:
   State state_;
-  Player *first_player_ = nullptr;
-  Player *second_player_ = nullptr;
+  std::shared_ptr<Player> first_player_;
+  std::shared_ptr<Player> second_player_;
 };
+
+inline void swap(Game &lhs, Game &rhs) {
+  using std::swap;
+  swap(lhs.state_, rhs.state_);
+  swap(lhs.first_player_, rhs.first_player_);
+  swap(lhs.second_player_, rhs.second_player_);
+}
 
 #endif  // NIM_GAME_H_

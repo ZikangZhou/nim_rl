@@ -12,34 +12,45 @@ State::State(std::istream &is) {
     while (state_stream >> num_objects) {
       state_.push_back(num_objects);
     }
+    if (!state_stream) {
+      is.setstate(is.rdstate() | std::istream::failbit);
+      state_.clear();
+      std::cerr << "Input Error: Input must be integer." << std::endl;
+    }
+  }
+  if (!is) {
+    std::cerr << "Warning: Input stream has failed." << std::endl;
   }
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: Input state is empty." << std::endl;
   }
 }
 
-State::State(std::initializer_list<unsigned> state) {
-  for (auto num_objects : state) {
-    state_.push_back(num_objects);
-  }
+State::State(std::initializer_list<unsigned> state) : state_(state) {
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: State is empty." << std::endl;
   }
 }
 
 State::State(std::vector<unsigned> state) : state_(std::move(state)) {
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: State is empty." << std::endl;
   }
 }
 
+State::State(State &&state) noexcept : state_(std::move(state.state_)) {
+  state.state_ = {};
+}
+
+State &State::operator=(State state) {
+  swap(*this, state);
+  return *this;
+}
+
 State &State::operator=(std::initializer_list<unsigned> state) {
-  state_.clear();
-  for (auto num_objects : state) {
-    state_.push_back(num_objects);
-  }
+  state_ = state;
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: State is empty." << std::endl;
   }
   return *this;
 }
@@ -47,49 +58,36 @@ State &State::operator=(std::initializer_list<unsigned> state) {
 State &State::operator=(const std::vector<unsigned> &state) {
   state_ = state;
   if (state_.empty()) {
-    throw std::invalid_argument("State should not be empty");
+    std::cerr << "Warning: State is empty." << std::endl;
   }
   return *this;
 }
 
-void State::RemoveObjects(std::vector<unsigned>::size_type pile_id,
+void State::RemoveObjects(size_type pile_id,
                           unsigned num_objects) {
-  if (pile_id >= state_.size()) {
-    throw std::out_of_range("pile_id should not be out of range");
-  }
+  Check(pile_id, "RemoveObjects on out_of_range pile_id");
   if (num_objects > state_[pile_id] || num_objects < 1) {
     throw std::out_of_range("num_objects must be [1, State[pile_id]]");
   }
   state_[pile_id] -= num_objects;
 }
 
-unsigned &State::operator[](std::vector<unsigned>::size_type pile_id) {
-  if (pile_id >= state_.size()) {
-    throw std::out_of_range("pile_id should not be out of range");
-  }
+unsigned &State::operator[](size_type pile_id) {
+  Check(pile_id, "RemoveObjects on out_of_range pile_id");
   return state_[pile_id];
 }
 
-const unsigned &State::operator[](
-    std::vector<unsigned>::size_type pile_id) const {
-  if (pile_id >= state_.size()) {
-    throw std::out_of_range("pile_id should not be out of range");
-  }
+const unsigned &State::operator[](size_type pile_id) const {
+  Check(pile_id, "RemoveObjects on out_of_range pile_id");
   return state_[pile_id];
 }
 
 std::istream &operator>>(std::istream &is, State &state) {
-  state.clear();
-  std::string line;
-  unsigned num_objects;
-  if (getline(is, line)) {
-    std::istringstream state_stream(line);
-    while (state_stream >> num_objects) {
-      state.push_back(num_objects);
-    }
-  }
-  if (state.empty()) {
-    throw std::invalid_argument("State should not be empty");
+  State new_state(is);
+  if (is) {
+    state = new_state;
+  } else {
+    is.clear();
   }
   return is;
 }

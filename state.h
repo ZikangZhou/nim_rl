@@ -5,7 +5,6 @@
 #ifndef NIM_STATE_H_
 #define NIM_STATE_H_
 
-#include <exception>
 #include <initializer_list>
 #include <iostream>
 #include <sstream>
@@ -15,7 +14,11 @@
 #include <vector>
 
 class State {
+  friend void swap(State &, State &);
+
  public:
+  typedef std::vector<unsigned>::size_type size_type;
+
   State() = default;
 
   explicit State(std::istream &is);
@@ -26,7 +29,9 @@ class State {
 
   State(const State &) = default;
 
-  State &operator=(const State &) = default;
+  State(State &&state) noexcept;
+
+  State &operator=(State state);
 
   State &operator=(std::initializer_list<unsigned> state);
 
@@ -42,20 +47,31 @@ class State {
 
   const std::vector<unsigned> &get() const { return state_; }
 
-  void push_back(unsigned num_objects) { state_.push_back(num_objects); }
+  void push_back(const unsigned &num_objects) { state_.push_back(num_objects); }
 
-  void RemoveObjects(std::vector<unsigned>::size_type pile_id,
+  void RemoveObjects(size_type pile_id,
                      unsigned num_objects);
 
-  std::vector<unsigned>::size_type size() const { return state_.size(); }
+  size_type size() const { return state_.size(); }
 
-  unsigned &operator[](std::vector<unsigned>::size_type pile_id);
+  unsigned &operator[](size_type pile_id);
 
-  const unsigned &operator[](std::vector<unsigned>::size_type pile_id) const;
+  const unsigned &operator[](size_type pile_id) const;
 
  private:
   std::vector<unsigned> state_;
+
+  void Check(size_type pile_id, const std::string &msg) const {
+    if (pile_id >= state_.size()) {
+      throw std::out_of_range(msg);
+    }
+  }
 };
+
+inline void swap(State &lhs, State &rhs) {
+  using std::swap;
+  swap(lhs.state_, rhs.state_);
+}
 
 std::istream &operator>>(std::istream &is, State &state);
 

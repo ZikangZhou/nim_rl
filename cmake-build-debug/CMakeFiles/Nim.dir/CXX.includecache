@@ -11,6 +11,10 @@ game.h
 /Users/zhouzikang/CLionProjects/Nim/game.h
 
 /Users/zhouzikang/CLionProjects/Nim/game.h
+iostream
+-
+memory
+-
 stdexcept
 -
 utility
@@ -22,27 +26,11 @@ player.h
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
 
-/Users/zhouzikang/CLionProjects/Nim/main.cpp
-iostream
--
-state.h
-/Users/zhouzikang/CLionProjects/Nim/state.h
-
-/Users/zhouzikang/CLionProjects/Nim/player.cpp
-player.h
-/Users/zhouzikang/CLionProjects/Nim/player.h
-
 /Users/zhouzikang/CLionProjects/Nim/player.h
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
 
-/Users/zhouzikang/CLionProjects/Nim/state.cpp
-state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
-
-/Users/zhouzikang/CLionProjects/Nim/state.h
-exception
--
 initializer_list
 -
 iostream
