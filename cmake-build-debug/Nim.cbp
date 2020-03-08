@@ -80,6 +80,18 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/action.cpp">
+			<Option target="Nim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/action.h">
+			<Option target="Nim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/agent.cpp">
+			<Option target="Nim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/agent.h">
+			<Option target="Nim"/>
+		</Unit>
 		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/game.cpp">
 			<Option target="Nim"/>
 		</Unit>
@@ -87,12 +99,6 @@
 			<Option target="Nim"/>
 		</Unit>
 		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/main.cpp">
-			<Option target="Nim"/>
-		</Unit>
-		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/player.cpp">
-			<Option target="Nim"/>
-		</Unit>
-		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/player.h">
 			<Option target="Nim"/>
 		</Unit>
 		<Unit filename="/Users/zhouzikang/CLionProjects/Nim/state.cpp">

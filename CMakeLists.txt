@@ -3,4 +3,4 @@ project(Nim)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Nim main.cpp game.h player.h game.cpp state.h state.cpp player.cpp)
+add_executable(Nim main.cpp game.h agent.h game.cpp state.h state.cpp agent.cpp action.h action.cpp)

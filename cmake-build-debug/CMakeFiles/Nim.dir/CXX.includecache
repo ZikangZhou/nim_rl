@@ -6,14 +6,40 @@
 
 #IncludeRegexTransform: 
 
+/Users/zhouzikang/CLionProjects/Nim/action.cpp
+action.h
+/Users/zhouzikang/CLionProjects/Nim/action.h
+
+/Users/zhouzikang/CLionProjects/Nim/action.h
+utility
+-
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
+
+/Users/zhouzikang/CLionProjects/Nim/agent.cpp
+agent.h
+/Users/zhouzikang/CLionProjects/Nim/agent.h
+game.h
+/Users/zhouzikang/CLionProjects/Nim/game.h
+
+/Users/zhouzikang/CLionProjects/Nim/agent.h
+random
+-
+set
+-
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
+
 /Users/zhouzikang/CLionProjects/Nim/game.cpp
 game.h
 /Users/zhouzikang/CLionProjects/Nim/game.h
+agent.h
+/Users/zhouzikang/CLionProjects/Nim/agent.h
 
 /Users/zhouzikang/CLionProjects/Nim/game.h
 iostream
 -
-memory
+set
 -
 stdexcept
 -
@@ -21,12 +47,12 @@ utility
 -
 vector
 -
-player.h
-/Users/zhouzikang/CLionProjects/Nim/player.h
+agent.h
+/Users/zhouzikang/CLionProjects/Nim/agent.h
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
 
-/Users/zhouzikang/CLionProjects/Nim/player.h
+/Users/zhouzikang/CLionProjects/Nim/state.cpp
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
 

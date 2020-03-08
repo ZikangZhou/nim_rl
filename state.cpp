@@ -21,51 +21,52 @@ State::State(std::istream &is) {
   if (!is) {
     std::cerr << "Warning: Input stream has failed." << std::endl;
   }
-  if (state_.empty()) {
-    std::cerr << "Warning: Input state is empty." << std::endl;
-  }
+  CheckEmpty("Warning: Input state is empty.");
 }
 
-State::State(std::initializer_list<unsigned> state) : state_(state) {
-  if (state_.empty()) {
-    std::cerr << "Warning: State is empty." << std::endl;
-  }
+State::State(const State &state) : state_(state.state_) {
+  CheckEmpty("Warning: State is empty.");
 }
 
-State::State(std::vector<unsigned> state) : state_(std::move(state)) {
-  if (state_.empty()) {
-    std::cerr << "Warning: State is empty." << std::endl;
-  }
+State::State(std::initializer_list<unsigned> il) : state_(il) {
+  CheckEmpty("Warning: State is empty.");
+}
+
+State::State(const std::vector<unsigned> &vec) : state_(vec) {
+  CheckEmpty("Warning: State is empty.");
 }
 
 State::State(State &&state) noexcept : state_(std::move(state.state_)) {
+  CheckEmpty("Warning: State is empty.");
   state.state_ = {};
 }
 
-State &State::operator=(State state) {
-  swap(*this, state);
+State &State::operator=(const State &rhs) {
+  state_ = rhs.state_;
+  CheckEmpty("Warning: State is empty.");
   return *this;
 }
 
-State &State::operator=(std::initializer_list<unsigned> state) {
-  state_ = state;
-  if (state_.empty()) {
-    std::cerr << "Warning: State is empty." << std::endl;
-  }
+State &State::operator=(State &&rhs) noexcept {
+  state_ = std::move(rhs.state_);
+  CheckEmpty("Warning: State is empty.");
   return *this;
 }
 
-State &State::operator=(const std::vector<unsigned> &state) {
-  state_ = state;
-  if (state_.empty()) {
-    std::cerr << "Warning: State is empty." << std::endl;
-  }
+State &State::operator=(std::initializer_list<unsigned> il) {
+  state_ = il;
+  CheckEmpty("Warning: State is empty.");
   return *this;
 }
 
-void State::RemoveObjects(size_type pile_id,
-                          unsigned num_objects) {
-  Check(pile_id, "RemoveObjects on out_of_range pile_id");
+State &State::operator=(const std::vector<unsigned> &vec) {
+  state_ = vec;
+  CheckEmpty("Warning: State is empty.");
+  return *this;
+}
+
+void State::RemoveObjects(size_type pile_id, unsigned num_objects) {
+  CheckRange(pile_id, "Pile_id is out of range.");
   if (num_objects > state_[pile_id] || num_objects < 1) {
     throw std::out_of_range("num_objects must be [1, State[pile_id]]");
   }
@@ -73,12 +74,12 @@ void State::RemoveObjects(size_type pile_id,
 }
 
 unsigned &State::operator[](size_type pile_id) {
-  Check(pile_id, "RemoveObjects on out_of_range pile_id");
+  CheckRange(pile_id, "Pile_id is out of range.");
   return state_[pile_id];
 }
 
 const unsigned &State::operator[](size_type pile_id) const {
-  Check(pile_id, "RemoveObjects on out_of_range pile_id");
+  CheckRange(pile_id, "Pile_id is out of range.");
   return state_[pile_id];
 }
 
@@ -101,4 +102,12 @@ std::ostream &operator<<(std::ostream &os, const State &state) {
     os << state[state.size() - 1];
   }
   return os;
+}
+
+bool operator==(const State &lhs, const State &rhs) {
+  return lhs.state_ == rhs.state_;
+}
+
+bool operator!=(const State &lhs, const State &rhs) {
+  return !(lhs == rhs);
 }

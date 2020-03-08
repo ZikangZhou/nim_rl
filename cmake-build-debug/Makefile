@@ -123,6 +123,60 @@ Nim/fast:
 	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/build
 .PHONY : Nim/fast
 
+action.o: action.cpp.o
+
+.PHONY : action.o
+
+# target to build an object file
+action.cpp.o:
+	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/action.cpp.o
+.PHONY : action.cpp.o
+
+action.i: action.cpp.i
+
+.PHONY : action.i
+
+# target to preprocess a source file
+action.cpp.i:
+	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/action.cpp.i
+.PHONY : action.cpp.i
+
+action.s: action.cpp.s
+
+.PHONY : action.s
+
+# target to generate assembly for a file
+action.cpp.s:
+	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/action.cpp.s
+.PHONY : action.cpp.s
+
+agent.o: agent.cpp.o
+
+.PHONY : agent.o
+
+# target to build an object file
+agent.cpp.o:
+	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/agent.cpp.o
+.PHONY : agent.cpp.o
+
+agent.i: agent.cpp.i
+
+.PHONY : agent.i
+
+# target to preprocess a source file
+agent.cpp.i:
+	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/agent.cpp.i
+.PHONY : agent.cpp.i
+
+agent.s: agent.cpp.s
+
+.PHONY : agent.s
+
+# target to generate assembly for a file
+agent.cpp.s:
+	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/agent.cpp.s
+.PHONY : agent.cpp.s
+
 game.o: game.cpp.o
 
 .PHONY : game.o
@@ -177,33 +231,6 @@ main.cpp.s:
 	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/main.cpp.s
 .PHONY : main.cpp.s
 
-player.o: player.cpp.o
-
-.PHONY : player.o
-
-# target to build an object file
-player.cpp.o:
-	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/player.cpp.o
-.PHONY : player.cpp.o
-
-player.i: player.cpp.i
-
-.PHONY : player.i
-
-# target to preprocess a source file
-player.cpp.i:
-	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/player.cpp.i
-.PHONY : player.cpp.i
-
-player.s: player.cpp.s
-
-.PHONY : player.s
-
-# target to generate assembly for a file
-player.cpp.s:
-	$(MAKE) -f CMakeFiles/Nim.dir/build.make CMakeFiles/Nim.dir/player.cpp.s
-.PHONY : player.cpp.s
-
 state.o: state.cpp.o
 
 .PHONY : state.o
@@ -240,15 +267,18 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... Nim"
+	@echo "... action.o"
+	@echo "... action.i"
+	@echo "... action.s"
+	@echo "... agent.o"
+	@echo "... agent.i"
+	@echo "... agent.s"
 	@echo "... game.o"
 	@echo "... game.i"
 	@echo "... game.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... player.o"
-	@echo "... player.i"
-	@echo "... player.s"
 	@echo "... state.o"
 	@echo "... state.i"
 	@echo "... state.s"

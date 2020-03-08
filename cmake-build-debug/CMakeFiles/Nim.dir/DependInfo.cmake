@@ -4,9 +4,10 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+  "/Users/zhouzikang/CLionProjects/Nim/action.cpp" "/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir/action.cpp.o"
+  "/Users/zhouzikang/CLionProjects/Nim/agent.cpp" "/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir/agent.cpp.o"
   "/Users/zhouzikang/CLionProjects/Nim/game.cpp" "/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir/game.cpp.o"
   "/Users/zhouzikang/CLionProjects/Nim/main.cpp" "/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir/main.cpp.o"
-  "/Users/zhouzikang/CLionProjects/Nim/player.cpp" "/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir/player.cpp.o"
   "/Users/zhouzikang/CLionProjects/Nim/state.cpp" "/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles/Nim.dir/state.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "AppleClang")

@@ -96,25 +96,39 @@ CMakeFiles/Nim.dir/state.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Nim.dir/state.cpp.s"
 	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/zhouzikang/CLionProjects/Nim/state.cpp -o CMakeFiles/Nim.dir/state.cpp.s
 
-CMakeFiles/Nim.dir/player.cpp.o: CMakeFiles/Nim.dir/flags.make
-CMakeFiles/Nim.dir/player.cpp.o: ../player.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/Nim.dir/player.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Nim.dir/player.cpp.o -c /Users/zhouzikang/CLionProjects/Nim/player.cpp
+CMakeFiles/Nim.dir/agent.cpp.o: CMakeFiles/Nim.dir/flags.make
+CMakeFiles/Nim.dir/agent.cpp.o: ../agent.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/Nim.dir/agent.cpp.o"
+	/Library/Developer/CommandLineTools/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Nim.dir/agent.cpp.o -c /Users/zhouzikang/CLionProjects/Nim/agent.cpp
 
-CMakeFiles/Nim.dir/player.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Nim.dir/player.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/zhouzikang/CLionProjects/Nim/player.cpp > CMakeFiles/Nim.dir/player.cpp.i
+CMakeFiles/Nim.dir/agent.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Nim.dir/agent.cpp.i"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/zhouzikang/CLionProjects/Nim/agent.cpp > CMakeFiles/Nim.dir/agent.cpp.i
 
-CMakeFiles/Nim.dir/player.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Nim.dir/player.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/zhouzikang/CLionProjects/Nim/player.cpp -o CMakeFiles/Nim.dir/player.cpp.s
+CMakeFiles/Nim.dir/agent.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Nim.dir/agent.cpp.s"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/zhouzikang/CLionProjects/Nim/agent.cpp -o CMakeFiles/Nim.dir/agent.cpp.s
+
+CMakeFiles/Nim.dir/action.cpp.o: CMakeFiles/Nim.dir/flags.make
+CMakeFiles/Nim.dir/action.cpp.o: ../action.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/Nim.dir/action.cpp.o"
+	/Library/Developer/CommandLineTools/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Nim.dir/action.cpp.o -c /Users/zhouzikang/CLionProjects/Nim/action.cpp
+
+CMakeFiles/Nim.dir/action.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Nim.dir/action.cpp.i"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/zhouzikang/CLionProjects/Nim/action.cpp > CMakeFiles/Nim.dir/action.cpp.i
+
+CMakeFiles/Nim.dir/action.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Nim.dir/action.cpp.s"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/zhouzikang/CLionProjects/Nim/action.cpp -o CMakeFiles/Nim.dir/action.cpp.s
 
 # Object files for target Nim
 Nim_OBJECTS = \
 "CMakeFiles/Nim.dir/main.cpp.o" \
 "CMakeFiles/Nim.dir/game.cpp.o" \
 "CMakeFiles/Nim.dir/state.cpp.o" \
-"CMakeFiles/Nim.dir/player.cpp.o"
+"CMakeFiles/Nim.dir/agent.cpp.o" \
+"CMakeFiles/Nim.dir/action.cpp.o"
 
 # External object files for target Nim
 Nim_EXTERNAL_OBJECTS =
@@ -122,10 +136,11 @@ Nim_EXTERNAL_OBJECTS =
 Nim: CMakeFiles/Nim.dir/main.cpp.o
 Nim: CMakeFiles/Nim.dir/game.cpp.o
 Nim: CMakeFiles/Nim.dir/state.cpp.o
-Nim: CMakeFiles/Nim.dir/player.cpp.o
+Nim: CMakeFiles/Nim.dir/agent.cpp.o
+Nim: CMakeFiles/Nim.dir/action.cpp.o
 Nim: CMakeFiles/Nim.dir/build.make
 Nim: CMakeFiles/Nim.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable Nim"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/zhouzikang/CLionProjects/Nim/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable Nim"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Nim.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

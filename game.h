@@ -6,74 +6,73 @@
 #define NIM_GAME_H_
 
 #include <iostream>
-#include <memory>
+#include <set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
-#include "player.h"
+#include "agent.h"
 #include "state.h"
 
 class Game {
   friend void swap(Game &, Game &);
+  friend class Agent;
 
  public:
   Game() = default;
 
-  explicit Game(const State &state);
+  explicit Game(const State &);
 
-  Game(State state, std::shared_ptr<Player> first_player,
-       std::shared_ptr<Player> second_player);
+  Game(const State &state, Agent *first_player, Agent *second_player);
 
-  Game(const Game &) = default;
+  Game(const Game &);
 
-  Game(Game &&game) noexcept;
+  Game(Game &&) noexcept;
 
-  Game &operator=(Game game);
+  Game &operator=(const Game &);
 
-  ~Game() = default;
+  Game &operator=(Game &&) noexcept;
+
+  ~Game();
+
+  std::vector<State::size_type> NonEmptyPiles() const;
 
   bool GameOver() const;
 
-  std::vector<unsigned> &get_state() { return state_.get(); }
+  Agent &get_first_player() { return *first_player_; }
 
-  const std::vector<unsigned> &get_state() const { return state_.get(); }
+  const Agent &get_first_player() const { return *first_player_; }
 
-  unsigned &get_state(State::size_type pile_id) {
-    return state_[pile_id];
-  }
+  Agent &get_second_player() { return *second_player_; }
 
-  const unsigned &get_state(State::size_type pile_id) const {
-    return state_[pile_id];
-  }
+  const Agent &get_second_player() const { return *second_player_; }
 
-  void set_first_player(std::shared_ptr<Player> first_player) {
-    first_player_ = std::move(first_player);
-  }
+  State &get_state() { return state_; }
 
-  void set_second_player(std::shared_ptr<Player> second_player) {
-    second_player_ = std::move(second_player);
-  }
-
-  void set_state(State::size_type pile_id, unsigned num_objects) {
-    state_[pile_id] = num_objects;
-  }
-
-  void set_state(const std::vector<unsigned> &state) { state_ = state; }
+  const State &get_state() const { return state_; }
 
   void Run();
 
+  void set_first_player(Agent *);
+
+  void set_second_player(Agent *);
+
+  void set_state(const State &state) { state_ = state; }
+
+  void set_state(State &&state) { state_ = state; }
+
  private:
   State state_;
-  std::shared_ptr<Player> first_player_;
-  std::shared_ptr<Player> second_player_;
+  Agent *first_player_ = nullptr;
+  Agent *second_player_ = nullptr;
+
+  void AddToAgents();
+
+  void MoveAgents(Game *);
+
+  void RemoveFromAgents();
 };
 
-inline void swap(Game &lhs, Game &rhs) {
-  using std::swap;
-  swap(lhs.state_, rhs.state_);
-  swap(lhs.first_player_, rhs.first_player_);
-  swap(lhs.second_player_, rhs.second_player_);
-}
+void swap(Game &, Game &);
 
 #endif  // NIM_GAME_H_
