@@ -22,48 +22,34 @@ class Agent {
 
  public:
   Agent() = default;
-
   Agent(const Agent &) = delete;
-
-  Agent(Agent &&) noexcept;
-
+  Agent(Agent &&agent) noexcept { MoveGames(&agent); }
   Agent &operator=(const Agent &) = delete;
-
   Agent &operator=(Agent &&) noexcept;
-
-  virtual ~Agent();
-
+  virtual ~Agent() { RemoveFromGames(); }
+  std::set<Game *> &games() { return games_; }
+  const std::set<Game *> &games() const { return games_; }
   virtual Action Policy(Game *) = 0;
 
  protected:
   std::set<Game *> games_;
-
-  Action RandomPickAction(const std::vector<Action> &actions);
+  Action RandomPickAction(const std::vector<Action> &);
 
  private:
-  std::mt19937 generator{std::random_device{}()};
-
+  std::mt19937 generator_{std::random_device{}()};
   void AddGame(Game *game) { games_.insert(game); }
-
   void MoveGames(Agent *);
-
   void RemoveFromGames();
-
   void RemoveGame(Game *game) { games_.erase(game); }
 };
 
 class RandomAgent : public Agent {
  public:
   RandomAgent() = default;
-
   RandomAgent(const RandomAgent &) = delete;
-
   RandomAgent(RandomAgent &&) = default;
-
   RandomAgent &operator=(const RandomAgent &) = delete;
-
   RandomAgent &operator=(RandomAgent &&) = default;
-
   Action Policy(Game *) override;
 };
 
@@ -73,13 +59,9 @@ class HumanAgent : public Agent {
       : Agent(), is_(is), os_(os) {}
 
   HumanAgent(const HumanAgent &) = delete;
-
   HumanAgent(HumanAgent &&) = default;
-
   HumanAgent &operator=(const HumanAgent &) = delete;
-
   HumanAgent &operator=(HumanAgent &&) = delete;
-
   Action Policy(Game *) override;
 
  private:
@@ -90,15 +72,10 @@ class HumanAgent : public Agent {
 class OptimalAgent : public Agent {
  public:
   OptimalAgent() = default;
-
   OptimalAgent(const OptimalAgent &) = delete;
-
   OptimalAgent(OptimalAgent &&) = default;
-
   OptimalAgent &operator=(const OptimalAgent &) = delete;
-
   OptimalAgent &operator=(OptimalAgent &&) = default;
-
   Action Policy(Game *) override;
 };
 

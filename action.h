@@ -10,44 +10,35 @@
 #include <string>
 #include <utility>
 
+class State;
+
 class Action {
   friend std::istream &operator>>(std::istream &, Action &);
   friend std::ostream &operator<<(std::ostream &, const Action &);
 
  public:
-  Action() : action_(-1, -1) {}
-
-  Action(int pile_id, int num_objects) : action_(pile_id, num_objects) {}
-
+  Action() = default;
+  Action(int pile_id, int num_objects)
+      : pile_id_(pile_id), num_objects_(num_objects) {}
   Action(const Action &) = default;
-
-  Action(Action &&action) noexcept : action_(std::move(action.action_)) {}
-
+  Action(Action &&action) noexcept
+      : pile_id_(action.pile_id_),
+        num_objects_(action.num_objects_) {}
   Action &operator=(const Action &) = default;
-
   Action &operator=(Action &&rhs) noexcept;
-
   ~Action() = default;
-
-  int &get_pile_id() { return action_.first; }
-
-  const int &get_pile_id() const { return action_.first; }
-
-  int &get_num_objects() { return action_.second; }
-
-  const int &get_num_objects() const { return action_.second; }
-
-  bool Valid(unsigned max_num_objects) const {
-    return action_.first >= 0 && action_.second >= 1
-        && action_.second <= max_num_objects;
-  }
+  int &num_objects() { return num_objects_; }
+  const int &num_objects() const { return num_objects_; }
+  int &pile_id() { return pile_id_; }
+  const int &pile_id() const { return pile_id_; }
+  bool Valid(const State &) const;
 
  private:
-  std::pair<int, int> action_;
+  int pile_id_ = -1;
+  int num_objects_ = -1;
 };
 
 std::istream &operator>>(std::istream &, Action &);
-
 std::ostream &operator<<(std::ostream &, const Action &);
 
 #endif  // NIM_ACTION_H_

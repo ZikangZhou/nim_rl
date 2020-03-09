@@ -20,53 +20,37 @@ State::State(std::istream &is) {
   if (!is) {
     std::cerr << "Error: Invalid Input." << std::endl;
   }
-  CheckEmpty("Warning: Input state is empty.");
-}
-
-State::State(const State &state) : state_(state.state_) {
-  CheckEmpty("Warning: State is empty.");
-}
-
-State::State(std::initializer_list<unsigned> il) : state_(il) {
-  CheckEmpty("Warning: State is empty.");
-}
-
-State::State(const std::vector<unsigned> &vec) : state_(vec) {
-  CheckEmpty("Warning: State is empty.");
-}
-
-State::State(State &&state) noexcept : state_(std::move(state.state_)) {
-  CheckEmpty("Warning: State is empty.");
+  CheckEmpty();
 }
 
 State &State::operator=(const State &rhs) {
   state_ = rhs.state_;
-  CheckEmpty("Warning: State is empty.");
+  CheckEmpty();
   return *this;
 }
 
 State &State::operator=(State &&rhs) noexcept {
   state_ = std::move(rhs.state_);
-  CheckEmpty("Warning: State is empty.");
+  CheckEmpty();
   return *this;
 }
 
 State &State::operator=(std::initializer_list<unsigned> il) {
   state_ = il;
-  CheckEmpty("Warning: State is empty.");
+  CheckEmpty();
   return *this;
 }
 
-State &State::operator=(const std::vector<unsigned> &vec) {
-  state_ = vec;
-  CheckEmpty("Warning: State is empty.");
+State &State::operator=(std::vector<unsigned> vec) {
+  state_ = std::move(vec);
+  CheckEmpty();
   return *this;
 }
 
 void State::TakeAction(const Action &action) {
-  int pile_id = action.get_pile_id();
-  int num_objects = action.get_num_objects();
-  CheckRange(pile_id, "Pile_id is out of range.");
+  int pile_id = action.pile_id();
+  int num_objects = action.num_objects();
+  CheckRange(pile_id);
   if (num_objects > state_[pile_id] || num_objects < 1) {
     throw std::out_of_range("num_objects must be [1, State[pile_id]]");
   }
@@ -74,19 +58,19 @@ void State::TakeAction(const Action &action) {
 }
 
 unsigned &State::operator[](int pile_id) {
-  CheckRange(pile_id, "Pile_id is out of range.");
+  CheckRange(pile_id);
   return state_[pile_id];
 }
 
 const unsigned &State::operator[](int pile_id) const {
-  CheckRange(pile_id, "Pile_id is out of range.");
+  CheckRange(pile_id);
   return state_[pile_id];
 }
 
 std::istream &operator>>(std::istream &is, State &state) {
-  State new_state(is);
+  State tmp(is);
   if (is) {
-    state = new_state;
+    state = std::move(tmp);
   } else {
     is.clear();
   }
@@ -95,12 +79,12 @@ std::istream &operator>>(std::istream &is, State &state) {
 
 std::ostream &operator<<(std::ostream &os, const State &state) {
   os << "State{";
-  if (!state.empty()) {
-    for (decltype(state.size()) pile_id = 0; pile_id != state.size() - 1;
+  if (!state.Empty()) {
+    for (decltype(state.Size()) pile_id = 0; pile_id != state.Size() - 1;
          ++pile_id) {
       os << state[pile_id] << ", ";
     }
-    os << state[state.size() - 1];
+    os << state[state.Size() - 1];
   }
   os << "}";
   return os;

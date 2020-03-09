@@ -6,10 +6,8 @@
 
 #include <iostream>
 
-Game::Game(const State &state) : state_(state) {}
-
-Game::Game(const State &state, Agent *first_player, Agent *second_player)
-    : state_(state),
+Game::Game(State state, Agent *first_player, Agent *second_player)
+    : state_(std::move(state)),
       first_player_(first_player),
       second_player_(second_player) {
   AddToAgents();
@@ -49,7 +47,7 @@ Game::~Game() {
 }
 
 bool Game::GameOver() const {
-  for (decltype(state_.size()) pile_id = 0; pile_id != state_.size();
+  for (decltype(state_.Size()) pile_id = 0; pile_id != state_.Size();
        ++pile_id) {
     if (state_[pile_id]) {
       return false;
@@ -60,10 +58,10 @@ bool Game::GameOver() const {
 
 std::vector<Action> Game::GetActions() const {
   std::vector<Action> actions;
-  for (decltype(state_.size()) pile_id = 0; pile_id != state_.size();
+  for (decltype(state_.Size()) pile_id = 0; pile_id != state_.Size();
        ++pile_id) {
     if (state_[pile_id]) {
-      for (unsigned num_objects = 1; num_objects != state_[pile_id] + 1;
+      for (int num_objects = 1; num_objects != state_[pile_id] + 1;
            ++num_objects) {
         actions.emplace_back(pile_id, num_objects);
       }
@@ -76,25 +74,26 @@ void Game::Run() {
   if (!first_player_ || !second_player_) {
     throw std::runtime_error("Agent should not be nullptr");
   }
-  if (state_.empty()) {
+  if (state_.Empty()) {
     throw std::runtime_error("State should not be empty");
   }
-  Action action1, action2;
+  Action action_first_player, action_second_player;
   std::cout << "Game started." << std::endl;
   do {
     std::cout << "Current state: " << state_ << std::endl;
-    action1 = first_player_->Policy(this);
-    state_.TakeAction(action1);
-    std::cout << "Player 1 takes action: " << action1 << std::endl;
+    action_first_player = first_player_->Policy(this);
+    state_.TakeAction(action_first_player);
+    std::cout << "Player 1 takes action: " << action_first_player << std::endl;
+    std::cout << "Current state: " << state_ << std::endl;
     if (GameOver()) {
       std::cout << "Game Over." << std::endl;
-      break;
+      return;
     }
-    std::cout << "Current state: " << state_ << std::endl;
-    action2 = second_player_->Policy(this);
-    state_.TakeAction(action2);
-    std::cout << "Player 2 takes action: " << action2 << std::endl;
+    action_second_player = second_player_->Policy(this);
+    state_.TakeAction(action_second_player);
+    std::cout << "Player 2 takes action: " << action_second_player << std::endl;
   } while (!GameOver());
+  std::cout << "Current state: " << state_ << std::endl;
   std::cout << "Game over." << std::endl;
 }
 
@@ -128,12 +127,14 @@ void Game::AddToAgents() {
 }
 
 void Game::MoveAgents(Game *moved_from) {
-  first_player_ = moved_from->first_player_;
-  second_player_ = moved_from->second_player_;
-  moved_from->RemoveFromAgents();
-  AddToAgents();
-  moved_from->state_.clear();
-  moved_from->first_player_ = moved_from->second_player_ = nullptr;
+  if(moved_from) {
+    first_player_ = moved_from->first_player_;
+    second_player_ = moved_from->second_player_;
+    moved_from->RemoveFromAgents();
+    AddToAgents();
+    moved_from->state_.Clear();
+    moved_from->first_player_ = moved_from->second_player_ = nullptr;
+  }
 }
 
 void Game::RemoveFromAgents() {

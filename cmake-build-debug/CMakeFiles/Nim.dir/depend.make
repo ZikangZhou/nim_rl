@@ -3,6 +3,7 @@
 
 CMakeFiles/Nim.dir/action.cpp.o: ../action.cpp
 CMakeFiles/Nim.dir/action.cpp.o: ../action.h
+CMakeFiles/Nim.dir/action.cpp.o: ../state.h
 
 CMakeFiles/Nim.dir/agent.cpp.o: ../action.h
 CMakeFiles/Nim.dir/agent.cpp.o: ../agent.cpp

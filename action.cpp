@@ -3,18 +3,24 @@
 //
 
 #include "action.h"
+#include "state.h"
 
 Action &Action::operator=(Action &&rhs) noexcept {
-  action_ = std::move(rhs.action_);
+  pile_id_ = rhs.pile_id_;
+  num_objects_ = rhs.num_objects_;
   return *this;
 }
 
+bool Action::Valid(const State &state) const {
+  return pile_id_ >= 0 && pile_id_ <= state.Size() - 1 && num_objects_ >= 1
+      && num_objects_ <= state[pile_id_];
+}
 std::istream &operator>>(std::istream &is, Action &action) {
   Action tmp;
   std::string line;
   if (getline(is, line)) {
     std::istringstream state_stream(line);
-    state_stream >> tmp.action_.first >> tmp.action_.second;
+    state_stream >> tmp.pile_id_ >> tmp.num_objects_;
     if (!state_stream.eof()) {
       is.setstate(is.rdstate() | std::istream::failbit);
     } else {
@@ -28,7 +34,6 @@ std::istream &operator>>(std::istream &is, Action &action) {
 }
 
 std::ostream &operator<<(std::ostream &os, const Action &action) {
-  os << "Action(" << action.action_.first << ", " << action.action_.second
-     << ")";
+  os << "Action(" << action.pile_id_ << ", " << action.num_objects_ << ")";
   return os;
 }

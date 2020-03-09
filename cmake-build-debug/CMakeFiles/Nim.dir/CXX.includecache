@@ -6,6 +6,12 @@
 
 #IncludeRegexTransform: 
 
+/Users/zhouzikang/CLionProjects/Nim/action.cpp
+action.h
+/Users/zhouzikang/CLionProjects/Nim/action.h
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
+
 /Users/zhouzikang/CLionProjects/Nim/action.h
 iostream
 -
@@ -38,6 +44,12 @@ action.h
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
 
+/Users/zhouzikang/CLionProjects/Nim/game.cpp
+game.h
+/Users/zhouzikang/CLionProjects/Nim/game.h
+iostream
+-
+
 /Users/zhouzikang/CLionProjects/Nim/game.h
 stdexcept
 -
@@ -55,6 +67,10 @@ state.h
 /Users/zhouzikang/CLionProjects/Nim/main.cpp
 game.h
 /Users/zhouzikang/CLionProjects/Nim/game.h
+
+/Users/zhouzikang/CLionProjects/Nim/state.cpp
+state.h
+/Users/zhouzikang/CLionProjects/Nim/state.h
 
 /Users/zhouzikang/CLionProjects/Nim/state.h
 initializer_list

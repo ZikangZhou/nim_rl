@@ -19,56 +19,33 @@ class Game {
 
  public:
   Game() = default;
-
-  explicit Game(const State &);
-
-  Game(const State &state, Agent *first_player, Agent *second_player);
-
+  explicit Game(State state) : state_(std::move(state)) {}
+  Game(State state, Agent *first_player, Agent *second_player);
   Game(const Game &);
-
   Game(Game &&) noexcept;
-
   Game &operator=(const Game &);
-
   Game &operator=(Game &&) noexcept;
-
   ~Game();
-
+  Agent &first_player() { return *first_player_; }
+  const Agent &first_player() const { return *first_player_; }
   bool GameOver() const;
-
   std::vector<Action> GetActions() const;
-
-  Agent &get_first_player() { return *first_player_; }
-
-  const Agent &get_first_player() const { return *first_player_; }
-
-  Agent &get_second_player() { return *second_player_; }
-
-  const Agent &get_second_player() const { return *second_player_; }
-
-  State &get_state() { return state_; }
-
-  const State &get_state() const { return state_; }
-
   void Run();
-
+  Agent &second_player() { return *second_player_; }
+  const Agent &second_player() const { return *second_player_; }
   void set_first_player(Agent *);
-
   void set_second_player(Agent *);
-
   void set_state(const State &state) { state_ = state; }
-
   void set_state(State &&state) { state_ = std::move(state); }
+  State &state() { return state_; }
+  const State &state() const { return state_; }
 
  private:
   State state_;
   Agent *first_player_ = nullptr;
   Agent *second_player_ = nullptr;
-
   void AddToAgents();
-
   void MoveAgents(Game *);
-
   void RemoveFromAgents();
 };
 
