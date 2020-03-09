@@ -3,20 +3,26 @@
 
 CMakeFiles/Nim.dir/action.cpp.o: ../action.cpp
 CMakeFiles/Nim.dir/action.cpp.o: ../action.h
-CMakeFiles/Nim.dir/action.cpp.o: ../state.h
 
+CMakeFiles/Nim.dir/agent.cpp.o: ../action.h
 CMakeFiles/Nim.dir/agent.cpp.o: ../agent.cpp
 CMakeFiles/Nim.dir/agent.cpp.o: ../agent.h
 CMakeFiles/Nim.dir/agent.cpp.o: ../game.h
 CMakeFiles/Nim.dir/agent.cpp.o: ../state.h
 
+CMakeFiles/Nim.dir/game.cpp.o: ../action.h
 CMakeFiles/Nim.dir/game.cpp.o: ../agent.h
 CMakeFiles/Nim.dir/game.cpp.o: ../game.cpp
 CMakeFiles/Nim.dir/game.cpp.o: ../game.h
 CMakeFiles/Nim.dir/game.cpp.o: ../state.h
 
+CMakeFiles/Nim.dir/main.cpp.o: ../action.h
+CMakeFiles/Nim.dir/main.cpp.o: ../agent.h
+CMakeFiles/Nim.dir/main.cpp.o: ../game.h
 CMakeFiles/Nim.dir/main.cpp.o: ../main.cpp
+CMakeFiles/Nim.dir/main.cpp.o: ../state.h
 
+CMakeFiles/Nim.dir/state.cpp.o: ../action.h
 CMakeFiles/Nim.dir/state.cpp.o: ../state.cpp
 CMakeFiles/Nim.dir/state.cpp.o: ../state.h
 

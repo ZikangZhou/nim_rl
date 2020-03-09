@@ -5,9 +5,13 @@
 #ifndef NIM_AGENT_H_
 #define NIM_AGENT_H_
 
+#include <iostream>
 #include <random>
 #include <set>
+#include <utility>
+#include <vector>
 
+#include "action.h"
 #include "state.h"
 
 class Game;
@@ -29,16 +33,16 @@ class Agent {
 
   virtual ~Agent();
 
-  virtual void Policy(Game *) = 0;
-
-  virtual Agent *clone() const & = 0;
-
-  virtual Agent *clone() && = 0;
+  virtual Action Policy(Game *) = 0;
 
  protected:
   std::set<Game *> games_;
 
+  Action RandomPickAction(const std::vector<Action> &actions);
+
  private:
+  std::mt19937 generator{std::random_device{}()};
+
   void AddGame(Game *game) { games_.insert(game); }
 
   void MoveGames(Agent *);
@@ -60,26 +64,47 @@ class RandomAgent : public Agent {
 
   RandomAgent &operator=(RandomAgent &&) = default;
 
-  void Policy(Game *) override {}
-
- private:
-  //static std::default_random_engine generator;
-  //static std::uniform_int_distribution<unsigned> distribution(0, 6);
+  Action Policy(Game *) override;
 };
 
 class HumanAgent : public Agent {
  public:
-  void Policy(Game *) override {}
+  explicit HumanAgent(std::istream &is = std::cin, std::ostream &os = std::cout)
+      : Agent(), is_(is), os_(os) {}
+
+  HumanAgent(const HumanAgent &) = delete;
+
+  HumanAgent(HumanAgent &&) = default;
+
+  HumanAgent &operator=(const HumanAgent &) = delete;
+
+  HumanAgent &operator=(HumanAgent &&) = delete;
+
+  Action Policy(Game *) override;
+
+ private:
+  std::istream &is_;
+  std::ostream &os_;
 };
 
 class OptimalAgent : public Agent {
  public:
-  void Policy(Game *) override {}
+  OptimalAgent() = default;
+
+  OptimalAgent(const OptimalAgent &) = delete;
+
+  OptimalAgent(OptimalAgent &&) = default;
+
+  OptimalAgent &operator=(const OptimalAgent &) = delete;
+
+  OptimalAgent &operator=(OptimalAgent &&) = default;
+
+  Action Policy(Game *) override;
 };
 
 class QAgent : public Agent {
  public:
-  void Policy(Game *) override {}
+  Action Policy(Game *) override { return Action{-1, -1}; }
 };
 
 #endif  // NIM_AGENT_H_

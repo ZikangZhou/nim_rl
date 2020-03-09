@@ -3,7 +3,8 @@
 //
 
 #include "game.h"
-#include "agent.h"
+
+#include <iostream>
 
 Game::Game(const State &state) : state_(state) {}
 
@@ -47,17 +48,6 @@ Game::~Game() {
   RemoveFromAgents();
 }
 
-std::vector<State::size_type> Game::NonEmptyPiles() const {
-  std::vector<State::size_type> piles;
-  for (decltype(state_.size()) pile_id = 0; pile_id != state_.size();
-       ++pile_id) {
-    if (state_[pile_id] >= 1) {
-      piles.push_back(pile_id);
-    }
-  }
-  return piles;
-}
-
 bool Game::GameOver() const {
   for (decltype(state_.size()) pile_id = 0; pile_id != state_.size();
        ++pile_id) {
@@ -68,17 +58,44 @@ bool Game::GameOver() const {
   return true;
 }
 
+std::vector<Action> Game::GetActions() const {
+  std::vector<Action> actions;
+  for (decltype(state_.size()) pile_id = 0; pile_id != state_.size();
+       ++pile_id) {
+    if (state_[pile_id]) {
+      for (unsigned num_objects = 1; num_objects != state_[pile_id] + 1;
+           ++num_objects) {
+        actions.emplace_back(pile_id, num_objects);
+      }
+    }
+  }
+  return actions;
+}
+
 void Game::Run() {
   if (!first_player_ || !second_player_) {
     throw std::runtime_error("Agent should not be nullptr");
   }
+  if (state_.empty()) {
+    throw std::runtime_error("State should not be empty");
+  }
+  Action action1, action2;
+  std::cout << "Game started." << std::endl;
   do {
-    first_player_->Policy(this);
+    std::cout << "Current state: " << state_ << std::endl;
+    action1 = first_player_->Policy(this);
+    state_.TakeAction(action1);
+    std::cout << "Player 1 takes action: " << action1 << std::endl;
     if (GameOver()) {
+      std::cout << "Game Over." << std::endl;
       break;
     }
-    second_player_->Policy(this);
+    std::cout << "Current state: " << state_ << std::endl;
+    action2 = second_player_->Policy(this);
+    state_.TakeAction(action2);
+    std::cout << "Player 2 takes action: " << action2 << std::endl;
   } while (!GameOver());
+  std::cout << "Game over." << std::endl;
 }
 
 void Game::set_first_player(Agent *first_player) {

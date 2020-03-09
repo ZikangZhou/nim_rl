@@ -13,6 +13,8 @@
 #include <utility>
 #include <vector>
 
+#include "action.h"
+
 class State {
   friend void swap(State &, State &);
   friend bool operator==(const State &, const State &);
@@ -28,7 +30,7 @@ class State {
 
   explicit State(const std::vector<unsigned> &);
 
-  State(const State &state);
+  State(const State &);
 
   State(State &&) noexcept;
 
@@ -46,13 +48,17 @@ class State {
 
   bool empty() const { return state_.empty(); }
 
-  void RemoveObjects(size_type pile_id, unsigned num_objects);
+  bool OutOfRange(int pile_id) const {
+    return pile_id >= state_.size() || pile_id < 0;
+  }
 
   size_type size() const { return state_.size(); }
 
-  unsigned &operator[](size_type);
+  void TakeAction(const Action &);
 
-  const unsigned &operator[](size_type) const;
+  unsigned &operator[](int);
+
+  const unsigned &operator[](int) const;
 
  private:
   std::vector<unsigned> state_;
@@ -63,8 +69,8 @@ class State {
     }
   }
 
-  void CheckRange(size_type pile_id, const std::string &msg) const {
-    if (pile_id >= state_.size()) {
+  void CheckRange(int pile_id, const std::string &msg) const {
+    if (pile_id >= state_.size() || pile_id < 0) {
       throw std::out_of_range(msg);
     }
   }

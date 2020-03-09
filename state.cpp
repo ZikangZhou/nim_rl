@@ -12,14 +12,13 @@ State::State(std::istream &is) {
     while (state_stream >> num_objects) {
       state_.push_back(num_objects);
     }
-    if (!state_stream) {
+    if (!state_stream.eof()) {
       is.setstate(is.rdstate() | std::istream::failbit);
       state_.clear();
-      std::cerr << "Input Error: Input must be integer." << std::endl;
     }
   }
   if (!is) {
-    std::cerr << "Warning: Input stream has failed." << std::endl;
+    std::cerr << "Error: Invalid Input." << std::endl;
   }
   CheckEmpty("Warning: Input state is empty.");
 }
@@ -38,7 +37,6 @@ State::State(const std::vector<unsigned> &vec) : state_(vec) {
 
 State::State(State &&state) noexcept : state_(std::move(state.state_)) {
   CheckEmpty("Warning: State is empty.");
-  state.state_ = {};
 }
 
 State &State::operator=(const State &rhs) {
@@ -65,7 +63,9 @@ State &State::operator=(const std::vector<unsigned> &vec) {
   return *this;
 }
 
-void State::RemoveObjects(size_type pile_id, unsigned num_objects) {
+void State::TakeAction(const Action &action) {
+  int pile_id = action.get_pile_id();
+  int num_objects = action.get_num_objects();
   CheckRange(pile_id, "Pile_id is out of range.");
   if (num_objects > state_[pile_id] || num_objects < 1) {
     throw std::out_of_range("num_objects must be [1, State[pile_id]]");
@@ -73,12 +73,12 @@ void State::RemoveObjects(size_type pile_id, unsigned num_objects) {
   state_[pile_id] -= num_objects;
 }
 
-unsigned &State::operator[](size_type pile_id) {
+unsigned &State::operator[](int pile_id) {
   CheckRange(pile_id, "Pile_id is out of range.");
   return state_[pile_id];
 }
 
-const unsigned &State::operator[](size_type pile_id) const {
+const unsigned &State::operator[](int pile_id) const {
   CheckRange(pile_id, "Pile_id is out of range.");
   return state_[pile_id];
 }
@@ -94,13 +94,15 @@ std::istream &operator>>(std::istream &is, State &state) {
 }
 
 std::ostream &operator<<(std::ostream &os, const State &state) {
+  os << "State{";
   if (!state.empty()) {
     for (decltype(state.size()) pile_id = 0; pile_id != state.size() - 1;
          ++pile_id) {
-      os << state[pile_id] << " ";
+      os << state[pile_id] << ", ";
     }
     os << state[state.size() - 1];
   }
+  os << "}";
   return os;
 }
 

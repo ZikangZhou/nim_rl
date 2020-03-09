@@ -5,12 +5,11 @@
 #ifndef NIM_GAME_H_
 #define NIM_GAME_H_
 
-#include <iostream>
-#include <set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
+#include "action.h"
 #include "agent.h"
 #include "state.h"
 
@@ -35,9 +34,9 @@ class Game {
 
   ~Game();
 
-  std::vector<State::size_type> NonEmptyPiles() const;
-
   bool GameOver() const;
+
+  std::vector<Action> GetActions() const;
 
   Agent &get_first_player() { return *first_player_; }
 
@@ -59,7 +58,7 @@ class Game {
 
   void set_state(const State &state) { state_ = state; }
 
-  void set_state(State &&state) { state_ = state; }
+  void set_state(State &&state) { state_ = std::move(state); }
 
  private:
   State state_;
