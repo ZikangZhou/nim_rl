@@ -5,9 +5,12 @@
 #ifndef NIM_AGENT_H_
 #define NIM_AGENT_H_
 
+#include <algorithm>
 #include <iostream>
+#include <map>
 #include <random>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -21,19 +24,31 @@ class Agent {
   friend class Game;
 
  public:
+  using Reward = double;
   Agent() = default;
   Agent(const Agent &) = delete;
   Agent(Agent &&agent) noexcept { MoveGames(&agent); }
   Agent &operator=(const Agent &) = delete;
   Agent &operator=(Agent &&) noexcept;
   virtual ~Agent() { RemoveFromGames(); }
-  std::set<Game *> &games() { return games_; }
-  const std::set<Game *> &games() const { return games_; }
-  virtual Action Policy(Game *) = 0;
+  State &current_state() { return current_state_; }
+  const State &current_state() const { return current_state_; }
+  template<typename T>
+  void set_current_state(T &&current_state) {
+    current_state_ = std::forward<T>(current_state);
+  }
+  std::unordered_set<Game *> &games() { return games_; }
+  const std::unordered_set<Game *> &games() const { return games_; }
+  virtual Action Policy(const State &state) = 0;
+  virtual void Update(const State &current_state,
+                      const State &next_state,
+                      Reward reward) {}
 
  protected:
-  std::set<Game *> games_;
-  Action RandomPickAction(const std::vector<Action> &);
+  State current_state_;
+  State next_state_greedy_;
+  std::unordered_set<Game *> games_;
+  Action SampleAction(const std::vector<Action> &);
 
  private:
   std::mt19937 generator_{std::random_device{}()};
@@ -50,7 +65,7 @@ class RandomAgent : public Agent {
   RandomAgent(RandomAgent &&) = default;
   RandomAgent &operator=(const RandomAgent &) = delete;
   RandomAgent &operator=(RandomAgent &&) = default;
-  Action Policy(Game *) override;
+  Action Policy(const State &state) override;
 };
 
 class HumanAgent : public Agent {
@@ -62,7 +77,7 @@ class HumanAgent : public Agent {
   HumanAgent(HumanAgent &&) = default;
   HumanAgent &operator=(const HumanAgent &) = delete;
   HumanAgent &operator=(HumanAgent &&) = delete;
-  Action Policy(Game *) override;
+  Action Policy(const State &state) override;
 
  private:
   std::istream &is_;
@@ -76,12 +91,45 @@ class OptimalAgent : public Agent {
   OptimalAgent(OptimalAgent &&) = default;
   OptimalAgent &operator=(const OptimalAgent &) = delete;
   OptimalAgent &operator=(OptimalAgent &&) = default;
-  Action Policy(Game *) override;
+  Action Policy(const State &state) override;
 };
 
-class QAgent : public Agent {
+class QLearningAgent : public Agent {
  public:
-  Action Policy(Game *) override { return Action{-1, -1}; }
+  QLearningAgent() = default;
+  QLearningAgent(double alpha, double gamma, double epsilon)
+      : alpha_(alpha), gamma_(gamma), epsilon_(epsilon) {}
+  QLearningAgent(const QLearningAgent &) = delete;
+  QLearningAgent(QLearningAgent &&) = default;
+  QLearningAgent &operator=(const QLearningAgent &) = delete;
+  QLearningAgent &operator=(QLearningAgent &&) = default;
+  double alpha() { return alpha_; }
+  const double alpha() const { return alpha_; }
+  double epsilon() { return epsilon_; }
+  const double epsilon() const { return epsilon_; }
+  double gamma() { return gamma_; }
+  const double gamma() const { return gamma_; }
+  Action Policy(const State &state) override;
+  std::unordered_map<State, Reward> &q_values() { return q_values_; }
+  const std::unordered_map<State,
+                           Reward> &q_values() const { return q_values_; }
+  void set_alpha(double alpha) { alpha_ = alpha; }
+  void set_epsilon(double epsilon) { epsilon_ = epsilon; }
+  void set_gamma(double gamma) { gamma_ = gamma; }
+  template<typename T>
+  void set_q_values_(T &&q_values) { q_values_ = std::forward<T>(q_values); }
+  void Update(const State &current_state,
+              const State &next_state,
+              Reward reward) override;
+
+ private:
+  double alpha_ = 0.05;
+  double gamma_ = 1.0;
+  double epsilon_ = 0.002;
+  std::unordered_map<State, Reward> q_values_;
+  std::default_random_engine generator;
+  std::uniform_real_distribution<> epsilon_distribution{0, 1};
+  std::uniform_real_distribution<> q_value_distribution{-1, 1};
 };
 
 #endif  // NIM_AGENT_H_

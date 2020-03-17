@@ -5,6 +5,7 @@
 #ifndef NIM_STATE_H_
 #define NIM_STATE_H_
 
+#include <algorithm>
 #include <initializer_list>
 #include <iostream>
 #include <sstream>
@@ -18,31 +19,32 @@
 class State {
   friend void swap(State &, State &);
   friend bool operator==(const State &, const State &);
+  friend class std::hash<State>;
 
  public:
   using size_type = std::vector<unsigned>::size_type;
   State() = default;
+  State(size_type n, unsigned val) : state_(n, val) {}
   explicit State(std::istream &);
-  State(std::initializer_list<unsigned> il) : state_(il) { CheckEmpty(); }
-  explicit State(std::vector<unsigned> vec) : state_(std::move(vec)) {
-    CheckEmpty();
-  }
-  State(const State &state) : state_(state.state_) { CheckEmpty(); }
-  State(State &&state) noexcept : state_(std::move(state.state_)) {
-    CheckEmpty();
-  }
+  State(std::initializer_list<unsigned> il) : state_(il) {}
+  explicit State(std::vector<unsigned> vec) : state_(std::move(vec)) {}
+  State(const State &state) : state_(state.state_) {}
+  State(State &&state) noexcept : state_(std::move(state.state_)) {}
   State &operator=(const State &);
   State &operator=(State &&) noexcept;
   State &operator=(std::initializer_list<unsigned>);
   State &operator=(std::vector<unsigned>);
   ~State() = default;
+  std::vector<Action> ActionSpace() const;
   void Clear() { state_.clear(); }
   bool Empty() const { return state_.empty(); }
+  bool End() const;
+  State Next(const Action &action) const;
   bool OutOfRange(int pile_id) const {
     return pile_id >= state_.size() || pile_id < 0;
   }
   size_type Size() const { return state_.size(); }
-  void TakeAction(const Action &);
+  void Update(const Action &);
   unsigned &operator[](int);
   const unsigned &operator[](int) const;
 
@@ -73,6 +75,24 @@ inline void State::CheckRange(int pile_id, const std::string &msg) const {
 inline void swap(State &lhs, State &rhs) {
   using std::swap;
   swap(lhs.state_, rhs.state_);
+}
+
+namespace std {
+template<>
+struct hash<State> {
+  typedef std::size_t result_type;
+  typedef State argument_type;
+  std::size_t operator()(const State &state) const {
+    std::vector<unsigned> state_sorted(state.state_);
+    std::sort(state_sorted.begin(), state_sorted.end());
+    size_t seed = 0;
+    for (int pile_id = 0; pile_id != state_sorted.size(); ++pile_id) {
+      seed ^= std::hash<unsigned>()(state_sorted[pile_id]) + 0x9e3779b9 + (seed << 6)
+          + (seed >> 2);
+    }
+    return seed;
+  }
+};
 }
 
 #endif  // NIM_STATE_H_

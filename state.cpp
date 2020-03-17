@@ -25,34 +25,64 @@ State::State(std::istream &is) {
 
 State &State::operator=(const State &rhs) {
   state_ = rhs.state_;
-  CheckEmpty();
   return *this;
 }
 
 State &State::operator=(State &&rhs) noexcept {
   state_ = std::move(rhs.state_);
-  CheckEmpty();
   return *this;
 }
 
 State &State::operator=(std::initializer_list<unsigned> il) {
   state_ = il;
-  CheckEmpty();
   return *this;
 }
 
 State &State::operator=(std::vector<unsigned> vec) {
   state_ = std::move(vec);
-  CheckEmpty();
   return *this;
 }
 
-void State::TakeAction(const Action &action) {
+std::vector<Action> State::ActionSpace() const {
+  std::vector<Action> action_space;
+  for (int pile_id = 0; pile_id != state_.size(); ++pile_id) {
+    if (state_[pile_id]) {
+      for (int num_objects = 1; num_objects != state_[pile_id] + 1;
+           ++num_objects) {
+        action_space.emplace_back(pile_id, num_objects);
+      }
+    }
+  }
+  return action_space;
+}
+
+bool State::End() const {
+  for (int pile_id = 0; pile_id != state_.size(); ++pile_id) {
+    if (state_[pile_id]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+State State::Next(const Action &action) const {
   int pile_id = action.pile_id();
   int num_objects = action.num_objects();
   CheckRange(pile_id);
   if (num_objects > state_[pile_id] || num_objects < 1) {
-    throw std::out_of_range("num_objects must be [1, State[pile_id]]");
+    throw std::out_of_range("num_objects must fall in [1, State[pile_id]]");
+  }
+  State next_state(*this);
+  next_state.state_[pile_id] -= num_objects;
+  return next_state;
+}
+
+void State::Update(const Action &action) {
+  int pile_id = action.pile_id();
+  int num_objects = action.num_objects();
+  CheckRange(pile_id);
+  if (num_objects > state_[pile_id] || num_objects < 1) {
+    throw std::out_of_range("num_objects must fall in [1, State[pile_id]]");
   }
   state_[pile_id] -= num_objects;
 }
@@ -71,17 +101,14 @@ std::istream &operator>>(std::istream &is, State &state) {
   State tmp(is);
   if (is) {
     state = std::move(tmp);
-  } else {
-    is.clear();
   }
   return is;
 }
 
 std::ostream &operator<<(std::ostream &os, const State &state) {
-  os << "State{";
+  os << "{";
   if (!state.Empty()) {
-    for (decltype(state.Size()) pile_id = 0; pile_id != state.Size() - 1;
-         ++pile_id) {
+    for (int pile_id = 0; pile_id != state.Size() - 1; ++pile_id) {
       os << state[pile_id] << ", ";
     }
     os << state[state.Size() - 1];
@@ -91,7 +118,10 @@ std::ostream &operator<<(std::ostream &os, const State &state) {
 }
 
 bool operator==(const State &lhs, const State &rhs) {
-  return lhs.state_ == rhs.state_;
+  std::vector<unsigned> lhs_sorted(lhs.state_), rhs_sorted(rhs.state_);
+  std::sort(lhs_sorted.begin(), lhs_sorted.end());
+  std::sort(rhs_sorted.begin(), rhs_sorted.end());
+  return lhs_sorted == rhs_sorted;
 }
 
 bool operator!=(const State &lhs, const State &rhs) {

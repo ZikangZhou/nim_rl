@@ -1,7 +1,8 @@
 #include "game.h"
 
 int main() {
-  Game game(State{10, 20, 10}, new HumanAgent, new OptimalAgent);
-  game.Run();
+  Game game(State{10, 10, 10}, new QLearningAgent, new RandomAgent);
+  game.Train(200000);
+  game.Play();
   return 0;
 }
