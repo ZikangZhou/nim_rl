@@ -5,6 +5,7 @@
 #ifndef NIM_GAME_H_
 #define NIM_GAME_H_
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
@@ -22,7 +23,9 @@ class Game {
  public:
   using Reward = double;
   Game() = default;
-  explicit Game(State state) : state_(std::move(state)) { init_state_ = state_; }
+  explicit Game(State state) : state_(std::move(state)) {
+    init_state_ = state_;
+  }
   Game(State state, Agent *first_player, Agent *second_player);
   Game(const Game &);
   Game(Game &&) noexcept;
@@ -38,7 +41,7 @@ class Game {
   void Reset();
   Reward reward() { return reward_; }
   const Reward reward() const { return reward_; }
-  Agent *Play();
+  void Play(int episodes = 1);
   Agent *second_player() { return second_player_; }
   const Agent *second_player() const { return second_player_; }
   void set_first_player(Agent *);

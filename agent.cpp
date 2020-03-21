@@ -13,6 +13,10 @@ Agent &Agent::operator=(Agent &&rhs) noexcept {
   return *this;
 }
 
+void Agent::Reset() {
+  current_state_ = next_state_greedy_ = State();
+}
+
 Action Agent::SampleAction(const std::vector<Action> &actions) {
   if (actions.empty()) {
     return Action{};
@@ -72,10 +76,7 @@ Action HumanAgent::Policy(const State &state) {
 }
 
 Action OptimalAgent::Policy(const State &state) {
-  unsigned nim_sum = 0;
-  for (int pile_id = 0; pile_id != state.Size(); ++pile_id) {
-    nim_sum ^= state[pile_id];
-  }
+  unsigned nim_sum = state.NimSum();
   for (int pile_id = 0; pile_id != state.Size(); ++pile_id) {
     unsigned num_objects_target = state[pile_id] ^nim_sum;
     if (num_objects_target < state[pile_id]) {
@@ -86,21 +87,30 @@ Action OptimalAgent::Policy(const State &state) {
   return SampleAction(state.ActionSpace());
 }
 
-Action QLearningAgent::Policy(const State &state) {
-  std::vector<Action> action_space = state.ActionSpace();
-  State end_state(state.Size(), 0);
-  if (q_values_.find(end_state) == q_values_.end()) {
-    q_values_.insert({end_state, 1.0});
-  }
-  if (q_values_.find(state) == q_values_.end()) {
-    q_values_.insert({state, q_value_distribution(generator)});
-  }
-  for (const auto &action : action_space) {
-    auto key = state.Next(action);
-    if (q_values_.find(key) == q_values_.end()) {
-      q_values_.insert({key, q_value_distribution(generator)});
+double QLearningAgent::ConvergenceRate() {
+  double num_n_position = 0.0;
+  double num_optimal_action = 0.0;
+  double init_epsilon = epsilon_;
+  epsilon_ = 0.0;
+  for (const auto &q_value : q_values_) {
+    if (q_value.first.NimSum()) {
+      ++num_n_position;
+      if (!q_value.first.Next(Policy(q_value.first)).NimSum()) {
+        ++num_optimal_action;
+      }
     }
   }
+  epsilon_ = init_epsilon;
+  return num_optimal_action / num_n_position;
+}
+
+void QLearningAgent::InitQValues(const State &init_state) {
+  InitQValuesImpl(init_state, 0);
+  q_values_[State(init_state.Size(), 0)] = 1.0;
+}
+
+Action QLearningAgent::Policy(const State &state) {
+  std::vector<Action> action_space = state.ActionSpace();
   auto iter = std::max_element(action_space.begin(), action_space.end(),
                                [&state, this](const Action &a,
                                               const Action &b) -> bool {
@@ -112,7 +122,7 @@ Action QLearningAgent::Policy(const State &state) {
     return Action{};
   } else {
     next_state_greedy_ = state.Next(*iter);
-    if (epsilon_distribution(generator) < epsilon_) {
+    if (epsilon_distribution_(generator_) < epsilon_) {
       return SampleAction(action_space);
     } else {
       return *iter;
@@ -131,4 +141,29 @@ void QLearningAgent::Update(const State &current_state,
         * (reward + gamma_ * q_values_[next_state_greedy_]
             - q_values_[current_state]);
   }
+}
+
+void QLearningAgent::InitQValuesImpl(const State &state, int pile_id) {
+  if (pile_id == state.Size()) {
+    if (q_values_.find(state) == q_values_.end()) {
+      q_values_.insert({state, q_value_distribution_(generator_)});
+    }
+    return;
+  }
+  Action action(pile_id, -1);
+  InitQValuesImpl(state, pile_id + 1);
+  for (int num_objects = 1; num_objects != state[pile_id] + 1; ++num_objects) {
+    action.set_num_objects(num_objects);
+    InitQValuesImpl(state.Next(action), pile_id + 1);
+  }
+}
+
+std::ostream &operator<<(std::ostream &os,
+                         const std::unordered_map<State,
+                                                  Agent::Reward> &q_values) {
+  os << std::fixed << std::setprecision(4);
+  for (const auto &q_value : q_values) {
+    os << q_value.first << ": " << q_value.second << ", ";
+  }
+  return os;
 }

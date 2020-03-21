@@ -19,6 +19,8 @@ utility
 /Users/zhouzikang/CLionProjects/Nim/agent.h
 algorithm
 -
+iomanip
+-
 iostream
 -
 map
@@ -39,6 +41,8 @@ state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
 
 /Users/zhouzikang/CLionProjects/Nim/game.h
+algorithm
+-
 iomanip
 -
 iostream

@@ -67,35 +67,64 @@ bool Game::GameOver() const {
 void Game::Reset() {
   state_ = init_state_;
   reward_ = 0.0;
+  first_player_->Reset();
+  second_player_->Reset();
+  second_player_->current_state_ = state_;
 }
 
-Agent *Game::Play() {
+void Game::Play(int episodes) {
+  if (episodes <= 0) {
+    throw std::invalid_argument("Episodes must be positive");
+  }
   if (!first_player_ || !second_player_) {
     throw std::runtime_error("Agent should not be nullptr");
   }
   if (state_.Empty()) {
     throw std::runtime_error("State should not be empty");
   }
+  double win_first_player = 0.0, win_second_player = 0.0;
   Action action_first_player, action_second_player;
-  std::cout << "Game started." << std::endl;
+  State next_state;
+  Reward reward = 0.0;
+  bool done = false;
   Reset();
-  do {
-    Render();
-    action_first_player = first_player_->Policy(state_);
-    state_.Update(action_first_player);
-    std::cout << "Player 1 takes action: " << action_first_player << std::endl;
-    Render();
-    if (GameOver()) {
-      std::cout << "Game Over. Player 1 wins." << std::endl;
-      return first_player_;
+  for (int i = 0; i < episodes; ++i) {
+//    std::cout << "Game started." << std::endl;
+    while (true) {
+//      Render();
+      action_first_player = first_player_->Policy(state_);
+      Step(action_first_player, &next_state, &reward, &done);
+//      std::cout << "Player 1 takes action: " << action_first_player
+//                << std::endl;
+//      Render();
+      if (done) {
+        if (reward == 1.0) {
+          win_first_player += 1;
+//          std::cout << "Game Over. Player 1 wins." << std::endl;
+        }
+        if (reward == -1.0) {
+          win_second_player += 1;
+//          std::cout << "Game Over. Player 2 wins." << std::endl;
+        }
+        break;
+      }
+      action_second_player = second_player_->Policy(state_);
+      Step(action_second_player, &next_state, &reward, &done);
+//      std::cout << "Player 2 takes action: " << action_second_player
+//                << std::endl;
+      if (done) {
+        win_second_player += 1;
+//        Render();
+//        std::cout << "Game Over. Player 2 wins." << std::endl;
+        break;
+      }
     }
-    action_second_player = second_player_->Policy(state_);
-    state_.Update(action_second_player);
-    std::cout << "Player 2 takes action: " << action_second_player << std::endl;
-  } while (!GameOver());
-  std::cout << "Current state: " << state_ << std::endl;
-  std::cout << "Game over. Player 2 wins." << std::endl;
-  return second_player_;
+    Reset();
+  }
+  std::cout << std::fixed << std::setprecision(4)
+            << "player 1 winning percentage: " << win_first_player / episodes
+            << ", player 2 winning percentage: " << win_second_player / episodes
+            << std::endl;
 }
 
 void Game::set_first_player(Agent *first_player) {
@@ -118,9 +147,7 @@ void Game::set_second_player(Agent *second_player) {
   }
 }
 
-void Game::Step(const Action &action,
-                State *state,
-                Reward *reward,
+void Game::Step(const Action &action, State *state, Reward *reward,
                 bool *done) {
   if (action.Valid(state_)) {
     state_.Update(action);
@@ -155,8 +182,12 @@ void Game::Train(int episodes) {
   Reward reward_first_player = 0.0, reward_second_player = 0.0;
   bool done = false;
   Reset();
-  first_player_->current_state_ = State();
-  second_player_->current_state_ = state_;
+  if (typeid(*first_player_) == typeid(QLearningAgent)) {
+    dynamic_cast<QLearningAgent *>(first_player_)->InitQValues(init_state_);
+  }
+  if (typeid(*second_player_) == typeid(QLearningAgent)) {
+    dynamic_cast<QLearningAgent *>(second_player_)->InitQValues(init_state_);
+  }
   for (int i = 0; i < episodes; ++i) {
     while (true) {
       action_first_player = first_player_->Policy(state_);
@@ -197,16 +228,28 @@ void Game::Train(int episodes) {
     if (reward_second_player == 1.0) {
       win_second_player += 1;
     }
+    Reset();
     if ((i + 1) % 1000 == 0) {
       std::cout << std::fixed << std::setprecision(4) << "Epoch " << i + 1
                 << ", player 1 winning percentage: "
                 << win_first_player / (i + 1)
                 << ", player 2 winning percentage: "
                 << win_second_player / (i + 1) << std::endl;
+      if (typeid(*first_player_) == typeid(QLearningAgent)) {
+        auto agent = dynamic_cast<QLearningAgent *>(first_player_);
+        agent->set_epsilon(std::max(0.1,
+                                    agent->epsilon() * agent->decay_epsilon()));
+        std::cout << "player 1 convergence rate: " << agent->ConvergenceRate()
+                  << ", epsilon = " << agent->epsilon() << std::endl;
+      }
+      if (typeid(*second_player_) == typeid(QLearningAgent)) {
+        auto agent = dynamic_cast<QLearningAgent *>(second_player_);
+        agent->set_epsilon(std::max(0.1,
+                                    agent->epsilon() * agent->decay_epsilon()));
+        std::cout << "player 2 convergence rate: " << agent->ConvergenceRate()
+                  << ", epsilon = " << agent->epsilon() << std::endl;
+      }
     }
-    Reset();
-    first_player_->current_state_ = State();
-    second_player_->current_state_ = state_;
   }
 }
 

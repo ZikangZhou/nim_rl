@@ -6,6 +6,7 @@
 #define NIM_AGENT_H_
 
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <random>
@@ -40,6 +41,7 @@ class Agent {
   std::unordered_set<Game *> &games() { return games_; }
   const std::unordered_set<Game *> &games() const { return games_; }
   virtual Action Policy(const State &state) = 0;
+  void Reset();
   virtual void Update(const State &current_state,
                       const State &next_state,
                       Reward reward) {}
@@ -96,24 +98,36 @@ class OptimalAgent : public Agent {
 
 class QLearningAgent : public Agent {
  public:
-  QLearningAgent() = default;
-  QLearningAgent(double alpha, double gamma, double epsilon)
-      : alpha_(alpha), gamma_(gamma), epsilon_(epsilon) {}
+  explicit QLearningAgent(double alpha = 1.0,
+                          double gamma = 1.0,
+                          double epsilon = 0.5,
+                          double decay_epsilon = 1.0)
+      : alpha_(alpha),
+        gamma_(gamma),
+        epsilon_(epsilon),
+        decay_epsilon_(decay_epsilon) {}
   QLearningAgent(const QLearningAgent &) = delete;
   QLearningAgent(QLearningAgent &&) = default;
   QLearningAgent &operator=(const QLearningAgent &) = delete;
   QLearningAgent &operator=(QLearningAgent &&) = default;
   double alpha() { return alpha_; }
   const double alpha() const { return alpha_; }
+  double decay_epsilon() { return decay_epsilon_; }
+  const double decay_epsilon() const { return decay_epsilon_; }
   double epsilon() { return epsilon_; }
   const double epsilon() const { return epsilon_; }
   double gamma() { return gamma_; }
   const double gamma() const { return gamma_; }
+  double ConvergenceRate();
+  void InitQValues(const State &);
   Action Policy(const State &state) override;
   std::unordered_map<State, Reward> &q_values() { return q_values_; }
   const std::unordered_map<State,
                            Reward> &q_values() const { return q_values_; }
   void set_alpha(double alpha) { alpha_ = alpha; }
+  void set_decay_epsilon(double decay_epsilon) {
+    decay_epsilon_ = decay_epsilon;
+  }
   void set_epsilon(double epsilon) { epsilon_ = epsilon; }
   void set_gamma(double gamma) { gamma_ = gamma; }
   template<typename T>
@@ -123,13 +137,18 @@ class QLearningAgent : public Agent {
               Reward reward) override;
 
  private:
-  double alpha_ = 0.05;
-  double gamma_ = 1.0;
-  double epsilon_ = 0.002;
+  double alpha_;
+  double gamma_;
+  double epsilon_;
+  double decay_epsilon_;
   std::unordered_map<State, Reward> q_values_;
-  std::default_random_engine generator;
-  std::uniform_real_distribution<> epsilon_distribution{0, 1};
-  std::uniform_real_distribution<> q_value_distribution{-1, 1};
+  std::default_random_engine generator_;
+  std::uniform_real_distribution<> epsilon_distribution_{0, 1};
+  std::uniform_real_distribution<> q_value_distribution_{-1, 1};
+  void InitQValuesImpl(const State &state, int pile_id);
 };
+
+std::ostream &operator<<(std::ostream &,
+                         const std::unordered_map<State, Agent::Reward> &);
 
 #endif  // NIM_AGENT_H_
