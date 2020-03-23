@@ -8,11 +8,11 @@ State::State(std::istream &is) {
   std::string line;
   unsigned num_objects;
   if (getline(is, line)) {
-    std::istringstream state_stream(line);
-    while (state_stream >> num_objects) {
+    std::istringstream iss(line);
+    while (iss >> num_objects) {
       data_.push_back(num_objects);
     }
-    if (!state_stream.eof()) {
+    if (!iss.eof()) {
       is.setstate(is.rdstate() | std::istream::failbit);
       data_.clear();
     }
@@ -20,7 +20,6 @@ State::State(std::istream &is) {
   if (!is) {
     std::cerr << "Error: Invalid Input." << std::endl;
   }
-  CheckEmpty();
 }
 
 State &State::operator=(State &&rhs) noexcept {
@@ -38,18 +37,36 @@ State &State::operator=(std::vector<unsigned> vec) {
   return *this;
 }
 
-std::vector<Action> State::ActionSpace() const {
-  std::vector<Action> action_space;
-  for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
-    for (int num_objects = 1; num_objects != data_[pile_id] + 1;
-         ++num_objects) {
-      action_space.emplace_back(pile_id, num_objects);
-    }
+void State::ApplyAction(const Action &action) {
+  int pile_id = action.GetPileId();
+  CheckRange(pile_id);
+  int num_objects = action.GetNumObjects();
+  if (num_objects > data_[pile_id] || num_objects < 1) {
+    throw std::out_of_range("num_objects must fall in [1, State[pile_id]]");
   }
-  return action_space;
+  data_[pile_id] -= num_objects;
 }
 
-bool State::End() const {
+State State::Child(const Action &action) const {
+  State child(*this);
+  child.ApplyAction(action);
+  return child;
+}
+
+std::vector<State> State::Children() const {
+  std::vector<State> children;
+  State state(*this);
+  for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
+    for (int num_objects = 0; num_objects != data_[pile_id]; ++num_objects) {
+      state[pile_id] = static_cast<unsigned>(num_objects);
+      children.push_back(state);
+    }
+    state[pile_id] = data_[pile_id];
+  }
+  return children;
+}
+
+bool State::IsTerminal() const {
   for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
     if (data_[pile_id]) {
       return false;
@@ -58,16 +75,15 @@ bool State::End() const {
   return true;
 }
 
-State State::Next(const Action &action) const {
-  int pile_id = action.pile_id();
-  int num_objects = action.num_objects();
-  CheckRange(pile_id);
-  if (num_objects > data_[pile_id] || num_objects < 1) {
-    throw std::out_of_range("num_objects must fall in [1, State[pile_id]]");
+std::vector<Action> State::LegalActions() const {
+  std::vector<Action> legal_actions;
+  for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
+    for (int num_objects = 1; num_objects != data_[pile_id] + 1;
+         ++num_objects) {
+      legal_actions.emplace_back(pile_id, num_objects);
+    }
   }
-  State next_state(*this);
-  next_state.data_[pile_id] -= num_objects;
-  return next_state;
+  return legal_actions;
 }
 
 unsigned State::NimSum() const {
@@ -78,14 +94,14 @@ unsigned State::NimSum() const {
   return nim_sum;
 }
 
-void State::Update(const Action &action) {
-  int pile_id = action.pile_id();
-  int num_objects = action.num_objects();
+void State::UndoAction(const Action &action) {
+  int pile_id = action.GetPileId();
   CheckRange(pile_id);
-  if (num_objects > data_[pile_id] || num_objects < 1) {
-    throw std::out_of_range("num_objects must fall in [1, State[pile_id]]");
+  int num_objects = action.GetNumObjects();
+  if (num_objects < 1) {
+    throw std::out_of_range("num_objects must be no less than 1");
   }
-  data_[pile_id] -= num_objects;
+  data_[pile_id] += num_objects;
 }
 
 unsigned &State::operator[](int pile_id) {
@@ -99,16 +115,16 @@ const unsigned &State::operator[](int pile_id) const {
 }
 
 std::istream &operator>>(std::istream &is, State &state) {
-  State tmp(is);
+  State state_is(is);
   if (is) {
-    state = std::move(tmp);
+    state = std::move(state_is);
   }
   return is;
 }
 
 std::ostream &operator<<(std::ostream &os, const State &state) {
   os << "{";
-  if (!state.Empty()) {
+  if (!state.IsEmpty()) {
     for (int pile_id = 0; pile_id != state.Size() - 1; ++pile_id) {
       os << state[pile_id] << ", ";
     }

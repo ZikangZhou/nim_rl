@@ -13,8 +13,12 @@ sstream
 -
 string
 -
-utility
--
+
+/Users/zhouzikang/CLionProjects/Nim/agent.cpp
+agent.h
+/Users/zhouzikang/CLionProjects/Nim/agent.h
+game.h
+/Users/zhouzikang/CLionProjects/Nim/game.h
 
 /Users/zhouzikang/CLionProjects/Nim/agent.h
 algorithm
@@ -22,8 +26,6 @@ algorithm
 iomanip
 -
 iostream
--
-map
 -
 random
 -
@@ -39,6 +41,10 @@ action.h
 /Users/zhouzikang/CLionProjects/Nim/action.h
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
+
+/Users/zhouzikang/CLionProjects/Nim/game.cpp
+game.h
+/Users/zhouzikang/CLionProjects/Nim/game.h
 
 /Users/zhouzikang/CLionProjects/Nim/game.h
 algorithm

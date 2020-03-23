@@ -6,10 +6,10 @@ int main() {
   OptimalAgent optimal_agent;
   RandomAgent random_agent;
   Game game(State{10, 10, 10}, &q_agent, &q_agent2);
-  game.Train(1000000);
-  std::cout << q_agent.q_values() << std::endl;
-  q_agent.set_epsilon(0.0);
-  game.set_second_player(&optimal_agent);
+  game.Train(20000);
+  std::cout << q_agent.GetQValues() << std::endl;
+  q_agent.SetEpsilon(0.0);
+  game.SetSecondPlayer(&optimal_agent);
   game.Play(50000);
   return 0;
 }

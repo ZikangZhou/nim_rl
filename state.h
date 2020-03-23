@@ -25,33 +25,34 @@ class State {
   using size_type = std::vector<unsigned>::size_type;
   State() = default;
   State(size_type n, unsigned val) : data_(n, val) {}
-  explicit State(std::istream &);
   State(std::initializer_list<unsigned> il) : data_(il) {}
+  explicit State(std::istream &);
   explicit State(std::vector<unsigned> vec) : data_(std::move(vec)) {}
-  State(const State &state) = default;
+  State(const State &) = default;
   State(State &&state) noexcept : data_(std::move(state.data_)) {}
   State &operator=(const State &) = default;
   State &operator=(State &&) noexcept;
   State &operator=(std::initializer_list<unsigned>);
   State &operator=(std::vector<unsigned>);
   ~State() = default;
-  std::vector<Action> ActionSpace() const;
+  void ApplyAction(const Action &);
+  State Child(const Action &) const;
+  std::vector<State> Children() const;
   void Clear() { data_.clear(); }
-  bool Empty() const { return data_.empty(); }
-  bool End() const;
-  State Next(const Action &action) const;
+  bool IsEmpty() const { return data_.empty(); }
+  bool IsTerminal() const;
+  std::vector<Action> LegalActions() const;
   unsigned NimSum() const;
   bool OutOfRange(int pile_id) const {
     return pile_id >= data_.size() || pile_id < 0;
   }
   size_type Size() const { return data_.size(); }
-  void Update(const Action &);
+  void UndoAction(const Action &);
   unsigned &operator[](int);
   const unsigned &operator[](int) const;
 
  private:
   std::vector<unsigned> data_;
-  void CheckEmpty(const std::string &msg = "Warning: State is empty.");
   void CheckRange(int pile_id,
                   const std::string &msg = "Pile_id is out of range.") const;
 };
@@ -61,14 +62,8 @@ std::ostream &operator<<(std::ostream &, const State &);
 bool operator==(const State &, const State &);
 bool operator!=(const State &, const State &);
 
-inline void State::CheckEmpty(const std::string &msg) {
-  if (data_.empty()) {
-    std::cerr << msg << std::endl;
-  }
-}
-
 inline void State::CheckRange(int pile_id, const std::string &msg) const {
-  if (pile_id >= data_.size() || pile_id < 0) {
+  if (OutOfRange(pile_id)) {
     throw std::out_of_range(msg);
   }
 }
@@ -81,12 +76,10 @@ inline void swap(State &lhs, State &rhs) {
 namespace std {
 template<>
 struct hash<State> {
-  typedef std::size_t result_type;
-  typedef State argument_type;
   std::size_t operator()(const State &state) const {
     std::vector<unsigned> state_sorted(state.data_);
     std::sort(state_sorted.begin(), state_sorted.end());
-    size_t seed = 0;
+    std::size_t seed = 0;
     for (int pile_id = 0; pile_id != state_sorted.size(); ++pile_id) {
       seed ^= std::hash<unsigned>()(state_sorted[pile_id]) + 0x9e3779b9
           + (seed << 6) + (seed >> 2);

@@ -8,9 +8,9 @@
 Action::Action(std::istream &is) {
   std::string line;
   if (getline(is, line)) {
-    std::istringstream state_stream(line);
-    state_stream >> pile_id_ >> num_objects_;
-    if (!state_stream.eof()) {
+    std::istringstream iss(line);
+    iss >> pile_id_ >> num_objects_;
+    if (!iss.eof()) {
       is.setstate(is.rdstate() | std::istream::failbit);
       pile_id_ = num_objects_ = -1;
     }
@@ -26,30 +26,31 @@ Action &Action::operator=(Action &&rhs) noexcept {
   return *this;
 }
 
-bool Action::Valid(const State &state) const {
+bool Action::IsLegal(const State &state) const {
   return pile_id_ >= 0 && pile_id_ <= state.Size() - 1 && num_objects_ >= 1
       && num_objects_ <= state[pile_id_];
 }
 
 std::istream &operator>>(std::istream &is, Action &action) {
-  Action tmp(is);
+  Action action_is(is);
   if (is) {
-    action = std::move(tmp);
+    action = std::move(action_is);
   }
   return is;
 }
 
 std::ostream &operator<<(std::ostream &os, const Action &action) {
-  os << "From pile " << action.pile_id_ << " remove " << action.num_objects_
-     << " object";
-  if (action.num_objects_ > 1) {
+  os << "From pile " << action.GetPileId() << " remove "
+     << action.GetNumObjects() << " object";
+  if (action.GetNumObjects() > 1) {
     os << "s";
   }
   return os;
 }
 
 bool operator==(const Action &lhs, const Action &rhs) {
-  return lhs.pile_id_ == rhs.pile_id_ && lhs.num_objects_ == rhs.num_objects_;
+  return lhs.GetPileId() == rhs.GetPileId()
+      && lhs.GetNumObjects() == rhs.GetNumObjects();
 }
 
 bool operator!=(const Action &lhs, const Action &rhs) {
