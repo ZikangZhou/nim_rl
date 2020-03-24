@@ -188,12 +188,12 @@ void Game::Train(int episodes) {
   Reward reward_first_player = 0.0, reward_second_player = 0.0;
   bool done = false;
   Reset();
-  if (typeid(*first_player_) == typeid(QLearningAgent)) {
-    dynamic_cast<QLearningAgent *>(first_player_)->InitializeQValues(
+  if (IsTDAgent(first_player_)) {
+    dynamic_cast<TDAgent *>(first_player_)->InitializeQValues(
         initial_state_);
   }
-  if (typeid(*second_player_) == typeid(QLearningAgent)) {
-    dynamic_cast<QLearningAgent *>(second_player_)->InitializeQValues(
+  if (IsTDAgent(second_player_)) {
+    dynamic_cast<TDAgent *>(second_player_)->InitializeQValues(
         initial_state_);
   }
   for (int i = 0; i < episodes; ++i) {
@@ -240,15 +240,15 @@ void Game::Train(int episodes) {
                 << win_first_player / (i + 1)
                 << ", player 2 winning percentage: "
                 << win_second_player / (i + 1) << std::endl;
-      if (typeid(*first_player_) == typeid(QLearningAgent)) {
-        auto first_player = dynamic_cast<QLearningAgent *>(first_player_);
+      if (IsTDAgent(first_player_)) {
+        auto first_player = dynamic_cast<TDAgent *>(first_player_);
         first_player->UpdateEpsilon();
         std::cout << "player 1 optimal actions ratio: "
                   << first_player->OptimalActionsRatio()
                   << ", epsilon = " << first_player->GetEpsilon() << std::endl;
       }
-      if (typeid(*second_player_) == typeid(QLearningAgent)) {
-        auto second_player = dynamic_cast<QLearningAgent *>(second_player_);
+      if (IsTDAgent(second_player_)) {
+        auto second_player = dynamic_cast<TDAgent *>(second_player_);
         second_player->UpdateEpsilon();
         std::cout << "player 2 optimal actions ratio: "
                   << second_player->OptimalActionsRatio()

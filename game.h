@@ -65,6 +65,14 @@ class Game {
   Agent *first_player_ = nullptr;
   Agent *second_player_ = nullptr;
   void AddToAgents();
+  bool IsTDAgent(Agent *agent) const {
+    return typeid(*agent) == typeid(TDAgent)
+        || typeid(*agent) == typeid(QLearningAgent)
+        || typeid(*agent) == typeid(SarsaAgent)
+        || typeid(*agent) == typeid(ExpectedSarsaAgent)
+        || typeid(*agent) == typeid(DoubleLearningAgent)
+        || typeid(*agent) == typeid(DoubleQLearningAgent);
+  }
   void MoveAgents(Game *);
   void RemoveFromAgents();
 };
