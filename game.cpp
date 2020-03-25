@@ -189,11 +189,11 @@ void Game::Train(int episodes) {
   bool done = false;
   Reset();
   if (IsTDAgent(first_player_)) {
-    dynamic_cast<TDAgent *>(first_player_)->InitializeQValues(
+    dynamic_cast<TDAgent *>(first_player_)->InitializeValues(
         initial_state_);
   }
   if (IsTDAgent(second_player_)) {
-    dynamic_cast<TDAgent *>(second_player_)->InitializeQValues(
+    dynamic_cast<TDAgent *>(second_player_)->InitializeValues(
         initial_state_);
   }
   for (int i = 0; i < episodes; ++i) {

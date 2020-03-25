@@ -39,6 +39,7 @@ class State {
   State Child(const Action &) const;
   std::vector<State> Children() const;
   void Clear() { data_.clear(); }
+  std::vector<State> GetAllStates() const;
   bool IsEmpty() const { return data_.empty(); }
   bool IsTerminal() const;
   std::vector<Action> LegalActions() const;
@@ -55,6 +56,9 @@ class State {
   std::vector<unsigned> data_;
   void CheckRange(int pile_id,
                   const std::string &msg = "Pile_id is out of range.") const;
+  void DoGetAllStates(const State &state,
+                      int pile_id,
+                      std::vector<State> *all_states) const;
 };
 
 std::istream &operator>>(std::istream &, State &);

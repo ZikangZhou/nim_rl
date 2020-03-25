@@ -66,6 +66,12 @@ std::vector<State> State::Children() const {
   return children;
 }
 
+std::vector<State> State::GetAllStates() const {
+  std::vector<State> all_states;
+  DoGetAllStates(*this, 0, &all_states);
+  return all_states;
+}
+
 bool State::IsTerminal() const {
   for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
     if (data_[pile_id]) {
@@ -112,6 +118,24 @@ unsigned &State::operator[](int pile_id) {
 const unsigned &State::operator[](int pile_id) const {
   CheckRange(pile_id);
   return data_[pile_id];
+}
+
+void State::DoGetAllStates(const State &state,
+                           int pile_id,
+                           std::vector<State> *all_states) const {
+  if (pile_id == data_.size()) {
+    if (std::find(all_states->begin(), all_states->end(), state)
+        == all_states->end()) {
+      all_states->push_back(state);
+    }
+    return;
+  }
+  Action action(pile_id, -1);
+  DoGetAllStates(state, pile_id + 1, all_states);
+  for (int num_objects = 1; num_objects != state[pile_id] + 1; ++num_objects) {
+    action.SetNumObjects(num_objects);
+    DoGetAllStates(state.Child(action), pile_id + 1, all_states);
+  }
 }
 
 std::istream &operator>>(std::istream &is, State &state) {

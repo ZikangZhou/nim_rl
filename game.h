@@ -71,7 +71,10 @@ class Game {
         || typeid(*agent) == typeid(SarsaAgent)
         || typeid(*agent) == typeid(ExpectedSarsaAgent)
         || typeid(*agent) == typeid(DoubleLearningAgent)
-        || typeid(*agent) == typeid(DoubleQLearningAgent);
+        || typeid(*agent) == typeid(DoubleQLearningAgent)
+        || typeid(*agent) == typeid (DoubleSarsaAgent)
+        || typeid(*agent) == typeid(DoubleExpectedSarsaAgent)
+        || typeid(*agent) == typeid(ValueIterationAgent);
   }
   void MoveAgents(Game *);
   void RemoveFromAgents();

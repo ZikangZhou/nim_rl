@@ -12,6 +12,8 @@
 class State;
 
 class Action {
+  friend class std::hash<Action>;
+
  public:
   Action() = default;
   Action(int pile_id, int num_objects)
@@ -38,5 +40,19 @@ std::istream &operator>>(std::istream &, Action &);
 std::ostream &operator<<(std::ostream &, const Action &);
 bool operator==(const Action &, const Action &);
 bool operator!=(const Action &, const Action &);
+
+namespace std {
+template<>
+struct hash<Action> {
+  std::size_t operator()(const Action &action) const {
+    std::size_t seed = 0;
+    seed ^= std::hash<int>()(action.pile_id_) + 0x9e3779b9
+        + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<int>()(action.num_objects_) + 0x9e3779b9
+        + (seed << 6) + (seed >> 2);
+    return seed;
+  }
+};
+}  // namespace std
 
 #endif  // NIM_ACTION_H_
