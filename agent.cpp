@@ -13,6 +13,12 @@ Agent &Agent::operator=(Agent &&rhs) noexcept {
   return *this;
 }
 
+Action Agent::Step(Game *game, bool is_evaluation) {
+  Action action = Policy(game->GetState(), is_evaluation);
+  game->Step(action);
+  return action;
+}
+
 Action Agent::SampleAction(const std::vector<Action> &actions) {
   if (actions.empty()) {
     return Action{};
@@ -49,11 +55,11 @@ void Agent::RemoveFromGames() {
   }
 }
 
-Action RandomAgent::Policy(const State &state) {
+Action RandomAgent::Policy(const State &state, bool /*is_evaluation*/) {
   return SampleAction(state.LegalActions());
 }
 
-Action HumanAgent::Policy(const State &state) {
+Action HumanAgent::Policy(const State &state, bool /*is_evaluation*/) {
   os_ << "Please input two integers to indicate your action." << std::endl;
   Action action;
   while (true) {
@@ -71,7 +77,7 @@ Action HumanAgent::Policy(const State &state) {
   return action;
 }
 
-Action OptimalAgent::Policy(const State &state) {
+Action OptimalAgent::Policy(const State &state, bool /*is_evaluation*/) {
   unsigned nim_sum = state.NimSum();
   for (int pile_id = 0; pile_id != state.Size(); ++pile_id) {
     unsigned num_objects_target = state[pile_id] ^nim_sum;
@@ -83,12 +89,28 @@ Action OptimalAgent::Policy(const State &state) {
   return SampleAction(state.LegalActions());
 }
 
-void ValueIterationAgent::InitializeMaps(const std::vector<State> &all_states) {
-  for (const auto &state : all_states) {
+double RLAgent::OptimalActionsRatio() {
+  double num_n_positions = 0.0;
+  double num_optimal_actions = 0.0;
+  std::unordered_map<State, Reward> values = GetValues();
+  for (const auto &value : values) {
+    if (value.first.NimSum()) {
+      ++num_n_positions;
+      if (!value.first.Child(Policy(value.first, true)).NimSum()) {
+        ++num_optimal_actions;
+      }
+    }
+  }
+  return num_optimal_actions / num_n_positions;
+}
+
+void ValueIterationAgent::InitializeValues(const State &initial_state) {
+  all_states_ = initial_state.GetAllStates();
+  for (const auto &state : all_states_) {
     if (state.IsTerminal()) {
-      values_.insert({state, 1.0});
+      values_.insert({state, kWinReward});
     } else {
-      values_.insert({state, 0.0});
+      values_.insert({state, kTieReward});
       std::vector<Action> legal_actions = state.LegalActions();
       for (const auto &action : legal_actions) {
         State next_state = state.Child(action);
@@ -97,9 +119,10 @@ void ValueIterationAgent::InitializeMaps(const std::vector<State> &all_states) {
       }
     }
   }
+  ValueIteration(initial_state);
 }
 
-Action ValueIterationAgent::Policy(const State &state) {
+Action ValueIterationAgent::Policy(const State &state, bool /*is_evaluation*/) {
   std::vector<Action> legal_actions = state.LegalActions();
   return *std::max_element(legal_actions.begin(),
                            legal_actions.end(),
@@ -110,15 +133,13 @@ Action ValueIterationAgent::Policy(const State &state) {
                            });
 }
 
-void ValueIterationAgent::Train(const State &initial_state) {
-  std::vector<State> all_states = initial_state.GetAllStates();
-  InitializeMaps(all_states);
+void ValueIterationAgent::ValueIteration(const State &initial_state) {
   double delta;
   do {
     delta = 0.0;
-    for (const auto &state : all_states) {
+    for (const auto &state : all_states_) {
       if (state.IsTerminal()) continue;
-      Reward value = 1.0;
+      Reward value = kMaxValue;
       std::vector<Action> legal_actions = state.LegalActions();
       for (const auto &action : legal_actions) {
         auto possibilities = transitions_[{state, action}];
@@ -133,32 +154,30 @@ void ValueIterationAgent::Train(const State &initial_state) {
       *stored_value = value;
     }
   } while (delta > threshold_);
-  std::cout << values_ << std::endl;
 }
 
 void TDAgent::InitializeValues(const State &initial_state) {
   DoInitializeValues(initial_state, 0);
-  values_[State(initial_state.Size(), 0)] = 1.0;
+  values_[State(initial_state.Size(), 0)] = kWinReward;
 }
 
-double TDAgent::OptimalActionsRatio() {
-  double num_n_positions = 0.0;
-  double num_optimal_actions = 0.0;
-  double initial_epsilon = epsilon_;
-  epsilon_ = 0.0;
-  for (const auto &value : values_) {
-    if (value.first.NimSum()) {
-      ++num_n_positions;
-      if (!value.first.Child(Policy(value.first)).NimSum()) {
-        ++num_optimal_actions;
-      }
-    }
+void TDAgent::Reset() {
+  Agent::Reset();
+  greedy_value_ = 0.0;
+  legal_actions_.clear();
+  num_legal_actions_ = 0;
+  num_greedy_actions_ = 0;
+}
+
+Action TDAgent::Step(Game *game, bool is_evaluation) {
+  Action action = Agent::Step(game, is_evaluation);
+  if (!is_evaluation) {
+    Update(current_state_, game->GetState(), game->GetReward());
   }
-  epsilon_ = initial_epsilon;
-  return num_optimal_actions / num_n_positions;
+  return action;
 }
 
-Action TDAgent::Policy(const State &state) {
+Action TDAgent::Policy(const State &state, bool is_evaluation) {
   legal_actions_ = state.LegalActions();
   num_legal_actions_ = legal_actions_.size();
   if (legal_actions_.empty()) {
@@ -181,16 +200,12 @@ Action TDAgent::Policy(const State &state) {
                    return values_[state.Child(action)] == greedy_value_;
                  });
     num_greedy_actions_ = greedy_actions.size();
-    return EpsilonGreedy(legal_actions_, greedy_actions);
+    if (is_evaluation) {
+      return SampleAction(greedy_actions);
+    } else {
+      return EpsilonGreedyPolicy(legal_actions_, greedy_actions);
+    }
   }
-}
-
-void TDAgent::Reset() {
-  Agent::Reset();
-  greedy_value_ = 0.0;
-  legal_actions_.clear();
-  num_legal_actions_ = 0;
-  num_greedy_actions_ = 0;
 }
 
 void TDAgent::DoInitializeValues(const State &state, int pile_id) {
@@ -232,11 +247,6 @@ void SarsaAgent::Update(const State &current_state,
   current_state_ = next_state;
 }
 
-Action ExpectedSarsaAgent::Policy(const State &state) {
-  SetNextStates(state.Children());
-  return TDAgent::Policy(state);
-}
-
 void ExpectedSarsaAgent::Reset() {
   TDAgent::Reset();
   next_states_.clear();
@@ -262,6 +272,11 @@ void ExpectedSarsaAgent::Update(const State &current_state,
   current_state_ = next_state;
 }
 
+Action ExpectedSarsaAgent::Policy(const State &state, bool is_evaluation) {
+  SetNextStates(state.Children());
+  return TDAgent::Policy(state, is_evaluation);
+}
+
 std::unordered_map<State,
                    Agent::Reward> DoubleLearningAgent::GetValues() const {
   std::unordered_map<State, Reward> values(values_);
@@ -276,7 +291,34 @@ void DoubleLearningAgent::InitializeValues(const State &initial_state) {
   values_2_ = values_;
 }
 
-Action DoubleLearningAgent::Policy(const State &state) {
+void DoubleLearningAgent::Reset() {
+  TDAgent::Reset();
+  flag_ = false;
+}
+
+void DoubleLearningAgent::Update(const State &current_state,
+                                 const State &next_state,
+                                 Reward reward) {
+  flag_ ? DoUpdate(current_state, next_state, reward, &values_)
+        : DoUpdate(current_state, next_state, reward, &values_2_);
+  current_state_ = next_state;
+}
+
+void DoubleQLearningAgent::DoUpdate(const State &current_state,
+                                    const State &next_state,
+                                    Reward reward,
+                                    std::unordered_map<State,
+                                                       Reward> *values) {
+  if (next_state.IsTerminal()) {
+    (*values)[current_state] +=
+        alpha_ * (reward - (*values)[current_state]);
+  } else if (!current_state.IsEmpty()) {
+    (*values)[current_state] += alpha_
+        * (reward + gamma_ * greedy_value_ - (*values)[current_state]);
+  }
+}
+
+Action DoubleLearningAgent::Policy(const State &state, bool is_evaluation) {
   legal_actions_ = state.LegalActions();
   num_legal_actions_ = legal_actions_.size();
   if (legal_actions_.empty()) {
@@ -304,8 +346,8 @@ Action DoubleLearningAgent::Policy(const State &state) {
                    return values_[next_state] + values_2_[next_state]
                        == greedy_value_;
                  });
-    prob_ = dist_(rng_);
-    if (prob_ < 0.5) {
+    flag_ = dist_flag_(rng_);
+    if (flag_) {
       greedy_action = *std::max_element(legal_actions_.begin(),
                                         legal_actions_.end(),
                                         [&state, this](const Action &a1,
@@ -325,34 +367,11 @@ Action DoubleLearningAgent::Policy(const State &state) {
       greedy_value_ = values_[state.Child(greedy_action)];
     }
     num_greedy_actions_ = greedy_actions.size();
-    return EpsilonGreedy(legal_actions_, greedy_actions);
-  }
-}
-
-void DoubleLearningAgent::Reset() {
-  TDAgent::Reset();
-  prob_ = 0.0;
-}
-
-void DoubleLearningAgent::Update(const State &current_state,
-                                 const State &next_state,
-                                 Reward reward) {
-  prob_ < 0.5 ? DoUpdate(current_state, next_state, reward, &values_)
-              : DoUpdate(current_state, next_state, reward, &values_2_);
-  current_state_ = next_state;
-}
-
-void DoubleQLearningAgent::DoUpdate(const State &current_state,
-                                    const State &next_state,
-                                    Reward reward,
-                                    std::unordered_map<State,
-                                                       Reward> *values) {
-  if (next_state.IsTerminal()) {
-    (*values)[current_state] +=
-        alpha_ * (reward - (*values)[current_state]);
-  } else if (!current_state.IsEmpty()) {
-    (*values)[current_state] += alpha_
-        * (reward + gamma_ * greedy_value_ - (*values)[current_state]);
+    if (is_evaluation) {
+      return SampleAction(greedy_actions);
+    } else {
+      return EpsilonGreedyPolicy(legal_actions_, greedy_actions);
+    }
   }
 }
 
@@ -375,46 +394,6 @@ void DoubleSarsaAgent::DoUpdate(const State &current_state,
               - (*values)[current_state]);
     }
   }
-}
-
-Action DoubleExpectedSarsaAgent::Policy(const State &state) {
-  SetNextStates(state.Children());
-  Action action = DoubleLearningAgent::Policy(state);
-  Action greedy_action;
-  std::vector<Action> greedy_actions;
-  if (prob_ < 0.5) {
-    greedy_action = *std::max_element(legal_actions_.begin(),
-                                      legal_actions_.end(),
-                                      [&state, this](const Action &a1,
-                                                     const Action &a2) {
-                                        return values_2_[state.Child(a1)]
-                                            < values_2_[state.Child(a2)];
-                                      });
-    greedy_value_ = values_2_[state.Child(greedy_action)];
-    std::copy_if(legal_actions_.begin(),
-                 legal_actions_.end(),
-                 std::back_inserter(greedy_actions),
-                 [&state, this](const Action &action) {
-                   return values_2_[state.Child(action)] == greedy_value_;
-                 });
-  } else {
-    greedy_action = *std::max_element(legal_actions_.begin(),
-                                      legal_actions_.end(),
-                                      [&state, this](const Action &a1,
-                                                     const Action &a2) {
-                                        return values_[state.Child(a1)]
-                                            < values_[state.Child(a2)];
-                                      });
-    greedy_value_ = values_[state.Child(greedy_action)];
-    std::copy_if(legal_actions_.begin(),
-                 legal_actions_.end(),
-                 std::back_inserter(greedy_actions),
-                 [&state, this](const Action &action) {
-                   return values_[state.Child(action)] == greedy_value_;
-                 });
-  }
-  num_greedy_actions_ = greedy_actions.size();
-  return action;
 }
 
 void DoubleExpectedSarsaAgent::Reset() {
@@ -451,10 +430,51 @@ void DoubleExpectedSarsaAgent::DoUpdate(const State &current_state,
   }
 }
 
+Action DoubleExpectedSarsaAgent::Policy(const State &state,
+                                        bool is_evaluation) {
+  SetNextStates(state.Children());
+  Action action = DoubleLearningAgent::Policy(state, is_evaluation);
+  Action greedy_action;
+  std::vector<Action> greedy_actions;
+  if (flag_) {
+    greedy_action = *std::max_element(legal_actions_.begin(),
+                                      legal_actions_.end(),
+                                      [&state, this](const Action &a1,
+                                                     const Action &a2) {
+                                        return values_2_[state.Child(a1)]
+                                            < values_2_[state.Child(a2)];
+                                      });
+    greedy_value_ = values_2_[state.Child(greedy_action)];
+    std::copy_if(legal_actions_.begin(),
+                 legal_actions_.end(),
+                 std::back_inserter(greedy_actions),
+                 [&state, this](const Action &action) {
+                   return values_2_[state.Child(action)] == greedy_value_;
+                 });
+  } else {
+    greedy_action = *std::max_element(legal_actions_.begin(),
+                                      legal_actions_.end(),
+                                      [&state, this](const Action &a1,
+                                                     const Action &a2) {
+                                        return values_[state.Child(a1)]
+                                            < values_[state.Child(a2)];
+                                      });
+    greedy_value_ = values_[state.Child(greedy_action)];
+    std::copy_if(legal_actions_.begin(),
+                 legal_actions_.end(),
+                 std::back_inserter(greedy_actions),
+                 [&state, this](const Action &action) {
+                   return values_[state.Child(action)] == greedy_value_;
+                 });
+  }
+  num_greedy_actions_ = greedy_actions.size();
+  return action;
+}
+
 std::ostream &operator<<(std::ostream &os,
                          const std::unordered_map<State,
                                                   Agent::Reward> &values) {
-  os << std::fixed << std::setprecision(4);
+  os << std::fixed << std::setprecision(kPrecision);
   for (const auto &value : values) {
     os << value.first << ": " << value.second << " ";
   }

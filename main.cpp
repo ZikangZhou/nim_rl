@@ -1,74 +1,76 @@
 #include "game.h"
 
 int main() {
-  Game game(State{10, 10, 10});
+  State initial_state{10, 10, 10};
+  double alpha = 0.5, gamma = 1.0, epsilon = 1.0, decay_factor = 0.9;
+  int train_episodes = 50000, play_episodes = 10000;
+
+  Game game(initial_state);
   OptimalAgent optimal_agent;
+  HumanAgent human_agent;
   RandomAgent random_agent;
-  QLearningAgent ql_agent1(0.99, 1.0, 1.0, 0.9);
-  QLearningAgent ql_agent2(0.99, 1.0, 1.0, 0.9);
-  SarsaAgent sarsa_agent1(0.5, 1.0, 1.0, 0.9);
-  SarsaAgent sarsa_agent2(0.5, 1.0, 1.0, 0.9);
-  ExpectedSarsaAgent expected_sarsa_agent1(0.5, 1.0, 1.0, 0.9);
-  ExpectedSarsaAgent expected_sarsa_agent2(0.5, 1.0, 1.0, 0.9);
-  DoubleQLearningAgent double_ql_agent1(0.5, 1.0, 1.0, 0.9);
-  DoubleQLearningAgent double_ql_agent2(0.5, 1.0, 1.0, 0.9);
-  DoubleSarsaAgent double_sarsa_agent1(0.5, 1.0, 1.0, 0.9);
-  DoubleSarsaAgent double_sarsa_agent2(0.5, 1.0, 1.0, 0.9);
-  DoubleExpectedSarsaAgent double_expected_sarsa_agent1(0.5, 1.0, 1.0, 0.9);
-  DoubleExpectedSarsaAgent double_expected_sarsa_agent2(0.5, 1.0, 1.0, 0.9);
   ValueIterationAgent value_iteration_agent;
-
-  game.SetFirstPlayer(&ql_agent1);
-  game.SetSecondPlayer(&ql_agent2);
-  game.Train(20000);
-  std::cout << ql_agent1.GetValues() << std::endl;
-  ql_agent1.SetEpsilon(0.0);
-  game.SetSecondPlayer(&optimal_agent);
-  game.Play(10000);
-
-  game.SetFirstPlayer(&sarsa_agent1);
-  game.SetSecondPlayer(&sarsa_agent2);
-  game.Train(50000);
-  std::cout << sarsa_agent1.GetValues() << std::endl;
-  sarsa_agent1.SetEpsilon(0.0);
-  game.SetSecondPlayer(&optimal_agent);
-  game.Play(10000);
-
-  game.SetFirstPlayer(&expected_sarsa_agent1);
-  game.SetSecondPlayer(&expected_sarsa_agent2);
-  game.Train(50000);
-  std::cout << expected_sarsa_agent1.GetValues() << std::endl;
-  expected_sarsa_agent1.SetEpsilon(0.0);
-  game.SetSecondPlayer(&optimal_agent);
-  game.Play(10000);
-
-  game.SetFirstPlayer(&double_ql_agent1);
-  game.SetSecondPlayer(&double_ql_agent2);
-  game.Train(50000);
-  std::cout << double_ql_agent1.GetValues() << std::endl;
-  double_ql_agent1.SetEpsilon(0.0);
-  game.SetSecondPlayer(&optimal_agent);
-  game.Play(10000);
-
-  game.SetFirstPlayer(&double_sarsa_agent1);
-  game.SetSecondPlayer(&double_sarsa_agent2);
-  game.Train(50000);
-  std::cout << double_sarsa_agent1.GetValues() << std::endl;
-  double_sarsa_agent1.SetEpsilon(0.0);
-  game.SetSecondPlayer(&optimal_agent);
-  game.Play(10000);
-
-  game.SetFirstPlayer(&double_expected_sarsa_agent1);
-  game.SetSecondPlayer(&double_expected_sarsa_agent2);
-  game.Train(50000);
-  std::cout << double_expected_sarsa_agent1.GetValues() << std::endl;
-  double_expected_sarsa_agent1.SetEpsilon(0.0);
-  game.SetSecondPlayer(&optimal_agent);
-  game.Play(10000);
+  QLearningAgent ql_agent1(alpha, gamma, epsilon, decay_factor);
+  QLearningAgent ql_agent2(alpha, gamma, epsilon, decay_factor);
+  SarsaAgent sarsa_agent1(alpha, gamma, epsilon, decay_factor);
+  SarsaAgent sarsa_agent2(alpha, gamma, epsilon, decay_factor);
+  ExpectedSarsaAgent expected_sarsa_agent1(alpha, gamma, epsilon, decay_factor);
+  ExpectedSarsaAgent expected_sarsa_agent2(alpha, gamma, epsilon, decay_factor);
+  DoubleQLearningAgent double_ql_agent1(alpha, gamma, epsilon, decay_factor);
+  DoubleQLearningAgent double_ql_agent2(alpha, gamma, epsilon, decay_factor);
+  DoubleSarsaAgent double_sarsa_agent1(alpha, gamma, epsilon, decay_factor);
+  DoubleSarsaAgent double_sarsa_agent2(alpha, gamma, epsilon, decay_factor);
+  DoubleExpectedSarsaAgent
+      double_expected_sarsa_agent1(alpha, gamma, epsilon, decay_factor);
+  DoubleExpectedSarsaAgent
+      double_expected_sarsa_agent2(alpha, gamma, epsilon, decay_factor);
 
   game.SetFirstPlayer(&value_iteration_agent);
   game.SetSecondPlayer(&optimal_agent);
-  value_iteration_agent.Train(game.GetInitialState());
-  game.Play(10000);
+  game.Train();
+  std::cout << value_iteration_agent.GetValues() << std::endl;
+  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&ql_agent1);
+  game.SetSecondPlayer(&ql_agent2);
+  game.Train(train_episodes);
+  std::cout << ql_agent1.GetValues() << std::endl;
+  game.SetSecondPlayer(&optimal_agent);
+  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&sarsa_agent1);
+  game.SetSecondPlayer(&sarsa_agent2);
+  game.Train(train_episodes);
+  std::cout << sarsa_agent1.GetValues() << std::endl;
+  game.SetSecondPlayer(&optimal_agent);
+  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&expected_sarsa_agent1);
+  game.SetSecondPlayer(&expected_sarsa_agent2);
+  game.Train(train_episodes);
+  std::cout << expected_sarsa_agent1.GetValues() << std::endl;
+  game.SetSecondPlayer(&optimal_agent);
+  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&double_ql_agent1);
+  game.SetSecondPlayer(&double_ql_agent2);
+  game.Train(train_episodes);
+  std::cout << double_ql_agent1.GetValues() << std::endl;
+  game.SetSecondPlayer(&optimal_agent);
+  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&double_sarsa_agent1);
+  game.SetSecondPlayer(&double_sarsa_agent2);
+  game.Train(train_episodes);
+  std::cout << double_sarsa_agent1.GetValues() << std::endl;
+  game.SetSecondPlayer(&optimal_agent);
+  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&double_expected_sarsa_agent1);
+  game.SetSecondPlayer(&double_expected_sarsa_agent2);
+  game.Train(train_episodes);
+  std::cout << double_expected_sarsa_agent1.GetValues() << std::endl;
+  game.SetSecondPlayer(&optimal_agent);
+  game.Play(play_episodes);
   return 0;
 }
