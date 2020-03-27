@@ -5,6 +5,17 @@
 #include "agent.h"
 #include "game.h"
 
+Action SampleAction(const std::vector<Action> &actions) {
+  static std::mt19937 rng{std::random_device{}()};
+  if (actions.empty()) {
+    return Action{};
+  } else {
+    std::uniform_int_distribution<decltype(actions.size())>
+        dist(0, actions.size() - 1);
+    return actions[dist(rng)];
+  }
+}
+
 Agent &Agent::operator=(Agent &&rhs) noexcept {
   if (this != &rhs) {
     RemoveFromGames();
@@ -17,16 +28,6 @@ Action Agent::Step(Game *game, bool is_evaluation) {
   Action action = Policy(game->GetState(), is_evaluation);
   game->Step(action);
   return action;
-}
-
-Action Agent::SampleAction(const std::vector<Action> &actions) {
-  if (actions.empty()) {
-    return Action{};
-  } else {
-    std::uniform_int_distribution<decltype(actions.size())>
-        dist(0, actions.size() - 1);
-    return actions[dist(rng_)];
-  }
 }
 
 void Agent::MoveGames(Agent *moved_from) {
@@ -89,6 +90,11 @@ Action OptimalAgent::Policy(const State &state, bool /*is_evaluation*/) {
   return SampleAction(state.LegalActions());
 }
 
+void RLAgent::InitializeValues(const State &initial_state) {
+  DoInitializeValues(initial_state, 0);
+  values_[State(initial_state.Size(), 0)] = kWinReward;
+}
+
 double RLAgent::OptimalActionsRatio() {
   double num_n_positions = 0.0;
   double num_optimal_actions = 0.0;
@@ -104,64 +110,7 @@ double RLAgent::OptimalActionsRatio() {
   return num_optimal_actions / num_n_positions;
 }
 
-void ValueIterationAgent::InitializeValues(const State &initial_state) {
-  all_states_ = initial_state.GetAllStates();
-  for (const auto &state : all_states_) {
-    if (state.IsTerminal()) {
-      values_.insert({state, kWinReward});
-    } else {
-      values_.insert({state, kTieReward});
-      std::vector<Action> legal_actions = state.LegalActions();
-      for (const auto &action : legal_actions) {
-        State next_state = state.Child(action);
-        std::vector<StateProb> possibilities{{next_state, 1.0}};
-        transitions_.insert({{state, action}, possibilities});
-      }
-    }
-  }
-  ValueIteration(initial_state);
-}
-
-Action ValueIterationAgent::Policy(const State &state, bool /*is_evaluation*/) {
-  std::vector<Action> legal_actions = state.LegalActions();
-  return *std::max_element(legal_actions.begin(),
-                           legal_actions.end(),
-                           [&state, this](const Action &a1,
-                                          const Action &a2) {
-                             return values_[state.Child(a1)]
-                                 < values_[state.Child(a2)];
-                           });
-}
-
-void ValueIterationAgent::ValueIteration(const State &initial_state) {
-  double delta;
-  do {
-    delta = 0.0;
-    for (const auto &state : all_states_) {
-      if (state.IsTerminal()) continue;
-      Reward value = kMaxValue;
-      std::vector<Action> legal_actions = state.LegalActions();
-      for (const auto &action : legal_actions) {
-        auto possibilities = transitions_[{state, action}];
-        Reward q_value = 0.0;
-        for (const auto &outcome : possibilities) {
-          q_value += -outcome.second * values_[outcome.first];
-        }
-        value = std::min(value, q_value);
-      }
-      Reward *stored_value = &values_[state];
-      delta = std::max(delta, std::abs(*stored_value - value));
-      *stored_value = value;
-    }
-  } while (delta > threshold_);
-}
-
-void TDAgent::InitializeValues(const State &initial_state) {
-  DoInitializeValues(initial_state, 0);
-  values_[State(initial_state.Size(), 0)] = kWinReward;
-}
-
-void TDAgent::Reset() {
+void RLAgent::Reset() {
   Agent::Reset();
   greedy_value_ = 0.0;
   legal_actions_.clear();
@@ -169,15 +118,7 @@ void TDAgent::Reset() {
   num_greedy_actions_ = 0;
 }
 
-Action TDAgent::Step(Game *game, bool is_evaluation) {
-  Action action = Agent::Step(game, is_evaluation);
-  if (!is_evaluation) {
-    Update(current_state_, game->GetState(), game->GetReward());
-  }
-  return action;
-}
-
-Action TDAgent::Policy(const State &state, bool is_evaluation) {
+Action RLAgent::Policy(const State &state, bool is_evaluation) {
   legal_actions_ = state.LegalActions();
   num_legal_actions_ = legal_actions_.size();
   if (legal_actions_.empty()) {
@@ -203,12 +144,12 @@ Action TDAgent::Policy(const State &state, bool is_evaluation) {
     if (is_evaluation) {
       return SampleAction(greedy_actions);
     } else {
-      return EpsilonGreedyPolicy(legal_actions_, greedy_actions);
+      return PolicyImpl(legal_actions_, greedy_actions);
     }
   }
 }
 
-void TDAgent::DoInitializeValues(const State &state, int pile_id) {
+void RLAgent::DoInitializeValues(const State &state, int pile_id) {
   if (pile_id == state.Size()) {
     if (values_.find(state) == values_.end()) {
       values_.insert({state, dist_value_(rng_)});
@@ -221,6 +162,136 @@ void TDAgent::DoInitializeValues(const State &state, int pile_id) {
     action.SetNumObjects(num_objects);
     DoInitializeValues(state.Child(action), pile_id + 1);
   }
+}
+
+void ValueIterationAgent::InitializeValues(const State &initial_state) {
+  all_states_ = initial_state.GetAllStates();
+  for (const auto &state : all_states_) {
+    if (state.IsTerminal()) {
+      values_.insert({state, kWinReward});
+    } else {
+      values_.insert({state, kTieReward});
+      std::vector<Action> legal_actions = state.LegalActions();
+      for (const auto &action : legal_actions) {
+        State next_state = state.Child(action);
+        std::vector<StateProb> possibilities{{next_state, 1.0}};
+        transitions_.insert({{state, action}, possibilities});
+      }
+    }
+  }
+  ValueIteration(initial_state);
+}
+
+void ValueIterationAgent::ValueIteration(const State &initial_state) {
+  int step = 0;
+  double delta;
+  do {
+    delta = 0.0;
+    for (const auto &state : all_states_) {
+      if (state.IsTerminal()) continue;
+      Reward value = kMaxValue;
+      std::vector<Action> legal_actions = state.LegalActions();
+      for (const auto &action : legal_actions) {
+        auto possibilities = transitions_[{state, action}];
+        Reward q_value = 0.0;
+        for (const auto &outcome : possibilities) {
+          q_value += -outcome.second * values_[outcome.first];
+        }
+        value = std::min(value, q_value);
+      }
+      Reward *stored_value = &values_[state];
+      delta = std::max(delta, std::abs(*stored_value - value));
+      *stored_value = value;
+    }
+    if (step++ % kCheckPoint == 0) {
+      std::cout << "Value Iteration agent optimal actions ratio: "
+                << OptimalActionsRatio();
+    }
+  } while (delta > threshold_);
+}
+
+void MonteCarloAgent::InitializeValues(const State &initial_state) {
+  RLAgent::InitializeValues(initial_state);
+  for (const auto &value : values_) {
+    cumulative_sums_.insert({value.first, 0.0});
+  }
+}
+
+void MonteCarloAgent::Reset() {
+  RLAgent::Reset();
+  trajectory_.clear();
+}
+
+Action MonteCarloAgent::Step(Game *game, bool is_evaluation) {
+  Action action = Agent::Step(game, is_evaluation);
+  trajectory_.emplace_back(game->GetState(), game->GetReward());
+  return action;
+}
+
+void OnPolicyMonteCarloAgent::Update(const State &/*current_state*/,
+                                     const State &/*next_state*/,
+                                     Reward reward) {
+  double ret = reward;
+  for (auto r_iter = trajectory_.crbegin(); r_iter != trajectory_.crend();
+       ++r_iter) {
+    State state(r_iter->first);
+    if (!state.IsTerminal()) {
+      ret = gamma_ * ret + r_iter->second;
+      if (std::find_if(r_iter + 1,
+                       trajectory_.crend(),
+                       [&r_iter, &state](const StateReward &state_reward) {
+                         return state_reward.first == state;
+                       }) == trajectory_.crend()) {
+        ++cumulative_sums_[state];
+        values_[state] += (ret - values_[state]) / cumulative_sums_[state];
+      }
+    }
+  }
+}
+
+void OffPolicyMonteCarloAgent::Reset() {
+  MonteCarloAgent::Reset();
+  actions_trajectory_.clear();
+}
+
+Action OffPolicyMonteCarloAgent::Step(Game *game, bool is_evaluation) {
+  Action action = MonteCarloAgent::Step(game, is_evaluation);
+  actions_trajectory_.push_back(action);
+  return action;
+}
+
+void OffPolicyMonteCarloAgent::Update(const State &/*current_state*/,
+                                      const State &/*next_state*/,
+                                      Reward reward) {
+  double ret = reward, weight = 1.0;
+  auto actions_r_iter = actions_trajectory_.crbegin();
+  for (auto trajectory_r_iter = trajectory_.crbegin();
+       trajectory_r_iter != trajectory_.crend(); ++trajectory_r_iter) {
+    State state(trajectory_r_iter->first);
+    double behavior_policy_prob =
+        Policy(state.Parent(*actions_r_iter), true) == *actions_r_iter ?
+        (1 - epsilon_) / num_greedy_actions_ + epsilon_ / num_legal_actions_ :
+        epsilon_ / num_legal_actions_;
+    if (!state.IsTerminal()) {
+      ret = gamma_ * ret + trajectory_r_iter->second;
+      cumulative_sums_[state] += weight;
+      values_[state] +=
+          weight * (ret - values_[state]) / cumulative_sums_[state];
+    }
+    if (*actions_r_iter != Policy(state.Parent(*actions_r_iter), true)) {
+      break;
+    }
+    weight /= behavior_policy_prob;
+    ++actions_r_iter;
+  }
+}
+
+Action TDAgent::Step(Game *game, bool is_evaluation) {
+  Action action = Agent::Step(game, is_evaluation);
+  if (!is_evaluation) {
+    Update(current_state_, game->GetState(), game->GetReward());
+  }
+  return action;
 }
 
 void QLearningAgent::Update(const State &current_state,
@@ -370,7 +441,7 @@ Action DoubleLearningAgent::Policy(const State &state, bool is_evaluation) {
     if (is_evaluation) {
       return SampleAction(greedy_actions);
     } else {
-      return EpsilonGreedyPolicy(legal_actions_, greedy_actions);
+      return PolicyImpl(legal_actions_, greedy_actions);
     }
   }
 }

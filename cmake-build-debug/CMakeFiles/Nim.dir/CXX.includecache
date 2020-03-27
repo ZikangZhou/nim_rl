@@ -14,12 +14,6 @@ sstream
 string
 -
 
-/Users/zhouzikang/CLionProjects/Nim/agent.cpp
-agent.h
-/Users/zhouzikang/CLionProjects/Nim/agent.h
-game.h
-/Users/zhouzikang/CLionProjects/Nim/game.h
-
 /Users/zhouzikang/CLionProjects/Nim/agent.h
 algorithm
 -
@@ -41,10 +35,6 @@ action.h
 /Users/zhouzikang/CLionProjects/Nim/action.h
 state.h
 /Users/zhouzikang/CLionProjects/Nim/state.h
-
-/Users/zhouzikang/CLionProjects/Nim/game.cpp
-game.h
-/Users/zhouzikang/CLionProjects/Nim/game.h
 
 /Users/zhouzikang/CLionProjects/Nim/game.h
 algorithm

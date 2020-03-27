@@ -100,6 +100,12 @@ unsigned State::NimSum() const {
   return nim_sum;
 }
 
+State State::Parent(const Action &action) const {
+  State parent(*this);
+  parent.UndoAction(action);
+  return parent;
+}
+
 void State::UndoAction(const Action &action) {
   int pile_id = action.GetPileId();
   CheckRange(pile_id);

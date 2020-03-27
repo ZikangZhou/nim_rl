@@ -38,6 +38,8 @@ struct hash<std::pair<State, Action>> {
 };
 }  // namespace std
 
+Action SampleAction(const std::vector<Action> &);
+
 class Game;
 
 class Agent {
@@ -68,30 +70,43 @@ class Agent {
   State current_state_;
   std::unordered_set<Game *> games_;
   virtual Action Policy(const State &, bool is_evaluation) = 0;
-  Action SampleAction(const std::vector<Action> &);
 
  private:
-  std::mt19937 rng_{std::random_device{}()};
   void AddGame(Game *game) { games_.insert(game); }
   void MoveGames(Agent *);
   void RemoveFromGames();
   void RemoveGame(Game *game) { games_.erase(game); }
 };
 
-class EpsilonGreedyInterface {
+class EpsilonGreedyPolicy {
  public:
-  virtual ~EpsilonGreedyInterface() = default;
-  virtual double GetEpsilon() const = 0;
-  virtual double GetEpsilonDecayFactor() const = 0;
-  virtual void SetEpsilon(double epsilon) = 0;
-  virtual void SetEpsilonDecayFactor(double decay_epsilon) = 0;
-  virtual void UpdateEpsilon() = 0;
-  virtual Action
-  EpsilonGreedyPolicy(const std::vector<Action> &legal_actions,
-                      const std::vector<Action> &greedy_actions) = 0;
+  explicit
+  EpsilonGreedyPolicy(double epsilon = kDefaultEpsilon,
+                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
+      : epsilon_(epsilon),
+        epsilon_decay_factor_(epsilon_decay_factor) {}
+  double GetEpsilon() const { return epsilon_; }
+  double GetEpsilonDecayFactor() const { return epsilon_decay_factor_; }
+  void SetEpsilon(double epsilon) { epsilon_ = epsilon; }
+  void SetEpsilonDecayFactor(double decay_epsilon) {
+    epsilon_decay_factor_ = decay_epsilon;
+  }
+  void UpdateEpsilon() {
+    epsilon_ = std::max(kMinEpsilon, epsilon_ * epsilon_decay_factor_);
+  }
+  Action EpsilonGreedy(const std::vector<Action> &legal_actions,
+                       const std::vector<Action> &greedy_actions) {
+    return (dist_epsilon_(rng_) < epsilon_) ? SampleAction(legal_actions)
+                                            : SampleAction(greedy_actions);
+  }
 
  protected:
-  EpsilonGreedyInterface() = default;
+  double epsilon_;
+  double epsilon_decay_factor_;
+
+ private:
+  std::uniform_real_distribution<> dist_epsilon_{0, 1};
+  std::mt19937 rng_{std::random_device{}()};
 };
 
 class RandomAgent : public Agent {
@@ -135,6 +150,9 @@ class OptimalAgent : public Agent {
 
 class RLAgent : public Agent {
  public:
+  using StateAction = std::pair<State, Action>;
+  using StateProb = std::pair<State, double>;
+  using StateReward = std::pair<State, Reward>;
   RLAgent() = default;
   RLAgent(const RLAgent &) = delete;
   RLAgent(RLAgent &&) = default;
@@ -142,8 +160,9 @@ class RLAgent : public Agent {
   RLAgent &operator=(RLAgent &&) = default;
   virtual std::unordered_map<State,
                              Reward> GetValues() const { return values_; }
-  virtual void InitializeValues(const State &) = 0;
+  virtual void InitializeValues(const State &);
   double OptimalActionsRatio();
+  void Reset() override;
   virtual void SetValues(const std::unordered_map<State, Reward> &values) {
     values_ = values;
   }
@@ -153,12 +172,22 @@ class RLAgent : public Agent {
 
  protected:
   std::unordered_map<State, Reward> values_;
+  Reward greedy_value_ = 0.0;
+  std::vector<Action> legal_actions_;
+  unsigned long num_legal_actions_ = 0;
+  unsigned long num_greedy_actions_ = 0;
+  Action Policy(const State &, bool is_evaluation) override;
+  virtual Action PolicyImpl(const std::vector<Action> &legal_actions,
+                            const std::vector<Action> &greedy_actions) = 0;
+
+ private:
+  std::uniform_real_distribution<> dist_value_{-1, 1};
+  std::mt19937 rng_{std::random_device{}()};
+  void DoInitializeValues(const State &state, int pile_id);
 };
 
 class ValueIterationAgent : public RLAgent {
  public:
-  using StateAction = std::pair<State, Action>;
-  using StateProb = std::pair<State, double>;
   explicit ValueIterationAgent(double threshold = kDefaultThreshold)
       : threshold_(threshold) {}
   ValueIterationAgent(const ValueIterationAgent &) = delete;
@@ -181,74 +210,106 @@ class ValueIterationAgent : public RLAgent {
   std::unordered_map<StateAction, std::vector<StateProb>> transitions_;
   std::vector<State> all_states_;
   double threshold_;
-  Action Policy(const State &, bool /*is_evaluation*/) override;
+  Action PolicyImpl(const std::vector<Action> &legal_actions,
+                    const std::vector<Action> &greedy_actions) override {
+    return SampleAction(greedy_actions);
+  }
   void ValueIteration(const State &);
 };
 
-class MonteCarloAgent : public RLAgent {
+class MonteCarloAgent : public RLAgent, public EpsilonGreedyPolicy {
  public:
-  MonteCarloAgent() = default;
+  explicit
+  MonteCarloAgent(double gamma = kDefaultGamma,
+                  double epsilon = kDefaultEpsilon,
+                  double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
+      : EpsilonGreedyPolicy(epsilon, epsilon_decay_factor), gamma_(gamma) {}
   MonteCarloAgent(const MonteCarloAgent &) = delete;
   MonteCarloAgent(MonteCarloAgent &&) = default;
   MonteCarloAgent &operator=(const MonteCarloAgent &) = delete;
   MonteCarloAgent &operator=(MonteCarloAgent &&) = default;
+  double GetGamma() const { return gamma_; }
+  void InitializeValues(const State &) override;
+  void Reset() override;
+  void SetGamma(double gamma) { gamma_ = gamma; }
+  Action Step(Game *, bool is_evaluation) override;
+
+ protected:
+  double gamma_;
+  std::vector<StateReward> trajectory_;
+  std::unordered_map<State, double> cumulative_sums_;
+
+ private:
+  Action PolicyImpl(const std::vector<Action> &legal_actions,
+                    const std::vector<Action> &greedy_actions) override {
+    return EpsilonGreedy(legal_actions, greedy_actions);
+  }
 };
 
-class TDAgent : public RLAgent, public EpsilonGreedyInterface {
+class OnPolicyMonteCarloAgent : public MonteCarloAgent {
+ public:
+  explicit OnPolicyMonteCarloAgent(double gamma = kDefaultGamma,
+                                   double epsilon = kDefaultEpsilon,
+                                   double epsilon_decay_factor
+                                   = kDefaultEpsilonDecayFactor)
+      : MonteCarloAgent(gamma, epsilon, epsilon_decay_factor) {}
+  OnPolicyMonteCarloAgent(const OnPolicyMonteCarloAgent &) = delete;
+  OnPolicyMonteCarloAgent(OnPolicyMonteCarloAgent &&) = default;
+  OnPolicyMonteCarloAgent &operator=(const OnPolicyMonteCarloAgent &) = delete;
+  OnPolicyMonteCarloAgent &operator=(OnPolicyMonteCarloAgent &&) = default;
+  void Update(const State &current_state,
+              const State &next_state,
+              Reward reward) override;
+};
+
+class OffPolicyMonteCarloAgent : public MonteCarloAgent {
+ public:
+  explicit OffPolicyMonteCarloAgent(double gamma = kDefaultGamma,
+                                    double epsilon = kDefaultEpsilon,
+                                    double epsilon_decay_factor
+                                    = kDefaultEpsilonDecayFactor)
+      : MonteCarloAgent(gamma, epsilon, epsilon_decay_factor) {}
+  OffPolicyMonteCarloAgent(const OffPolicyMonteCarloAgent &) = delete;
+  OffPolicyMonteCarloAgent(OffPolicyMonteCarloAgent &&) = default;
+  OffPolicyMonteCarloAgent &
+  operator=(const OffPolicyMonteCarloAgent &) = delete;
+  OffPolicyMonteCarloAgent &operator=(OffPolicyMonteCarloAgent &&) = default;
+  void Reset() override;
+  Action Step(Game *, bool is_evaluation) override;
+  void Update(const State &current_state,
+              const State &next_state,
+              Reward reward) override;
+
+ private:
+  std::vector<Action> actions_trajectory_;
+};
+
+class TDAgent : public RLAgent, public EpsilonGreedyPolicy {
  public:
   explicit TDAgent(double alpha = kDefaultAlpha,
                    double gamma = kDefaultGamma,
                    double epsilon = kDefaultEpsilon,
                    double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : alpha_(alpha),
-        gamma_(gamma),
-        epsilon_(epsilon),
-        epsilon_decay_factor_(epsilon_decay_factor) {}
+      : EpsilonGreedyPolicy(epsilon, epsilon_decay_factor),
+        alpha_(alpha),
+        gamma_(gamma) {}
   TDAgent(const TDAgent &) = delete;
   TDAgent(TDAgent &&) = default;
   TDAgent &operator=(const TDAgent &) = delete;
   TDAgent &operator=(TDAgent &&) = default;
   double GetAlpha() const { return alpha_; }
-  double GetEpsilon() const override { return epsilon_; }
-  double GetEpsilonDecayFactor() const override {
-    return epsilon_decay_factor_;
-  }
   double GetGamma() const { return gamma_; }
-  void InitializeValues(const State &) override;
-  void Reset() override;
   void SetAlpha(double alpha) { alpha_ = alpha; }
-  void SetEpsilon(double epsilon) override { epsilon_ = epsilon; }
-  void SetEpsilonDecayFactor(double decay_epsilon) override {
-    epsilon_decay_factor_ = decay_epsilon;
-  }
   void SetGamma(double gamma) { gamma_ = gamma; }
   Action Step(Game *, bool is_evaluation) override;
-  void UpdateEpsilon() override {
-    epsilon_ = std::max(kMinEpsilon, epsilon_ * epsilon_decay_factor_);
-  }
 
  protected:
   double alpha_;
   double gamma_;
-  double epsilon_;
-  double epsilon_decay_factor_;
-  Reward greedy_value_ = 0.0;
-  std::vector<Action> legal_actions_;
-  unsigned long num_legal_actions_ = 0;
-  unsigned long num_greedy_actions_ = 0;
-  Action
-  EpsilonGreedyPolicy(const std::vector<Action> &legal_actions,
-                      const std::vector<Action> &greedy_actions) override {
-    return (dist_epsilon_(rng_) < epsilon_) ? SampleAction(legal_actions)
-                                            : SampleAction(greedy_actions);
+  Action PolicyImpl(const std::vector<Action> &legal_actions,
+                    const std::vector<Action> &greedy_actions) override {
+    return EpsilonGreedy(legal_actions, greedy_actions);
   }
-  Action Policy(const State &, bool is_evaluation) override;
-
- private:
-  std::uniform_real_distribution<> dist_epsilon_{0, 1};
-  std::uniform_real_distribution<> dist_value_{-1, 1};
-  std::mt19937 rng_{std::random_device{}()};
-  void DoInitializeValues(const State &state, int pile_id);
 };
 
 class QLearningAgent : public TDAgent {

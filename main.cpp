@@ -10,6 +10,10 @@ int main() {
   HumanAgent human_agent;
   RandomAgent random_agent;
   ValueIterationAgent value_iteration_agent;
+  OnPolicyMonteCarloAgent on_policy_mc_agent1(gamma, epsilon, decay_factor);
+  OnPolicyMonteCarloAgent on_policy_mc_agent2(gamma, epsilon, decay_factor);
+  OffPolicyMonteCarloAgent off_policy_mc_agent1(gamma, 0.01, 1.0);
+  OffPolicyMonteCarloAgent off_policy_mc_agent2(gamma, 0.01, 1.0);
   QLearningAgent ql_agent1(alpha, gamma, epsilon, decay_factor);
   QLearningAgent ql_agent2(alpha, gamma, epsilon, decay_factor);
   SarsaAgent sarsa_agent1(alpha, gamma, epsilon, decay_factor);
@@ -25,10 +29,24 @@ int main() {
   DoubleExpectedSarsaAgent
       double_expected_sarsa_agent2(alpha, gamma, epsilon, decay_factor);
 
-  game.SetFirstPlayer(&value_iteration_agent);
+//  game.SetFirstPlayer(&value_iteration_agent);
+//  game.SetSecondPlayer(&optimal_agent);
+//  game.Train();
+//  std::cout << value_iteration_agent.GetValues() << std::endl;
+//  game.Play(play_episodes);
+//
+//  game.SetFirstPlayer(&on_policy_mc_agent1);
+//  game.SetSecondPlayer(&on_policy_mc_agent2);
+//  game.Train(train_episodes);
+//  std::cout << on_policy_mc_agent1.GetValues() << std::endl;
+//  game.SetSecondPlayer(&optimal_agent);
+//  game.Play(play_episodes);
+
+  game.SetFirstPlayer(&off_policy_mc_agent1);
+  game.SetSecondPlayer(&off_policy_mc_agent2);
+  game.Train(train_episodes * 2);
+  std::cout << off_policy_mc_agent1.GetValues() << std::endl;
   game.SetSecondPlayer(&optimal_agent);
-  game.Train();
-  std::cout << value_iteration_agent.GetValues() << std::endl;
   game.Play(play_episodes);
 
   game.SetFirstPlayer(&ql_agent1);

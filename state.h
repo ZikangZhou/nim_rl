@@ -47,6 +47,7 @@ class State {
   bool OutOfRange(int pile_id) const {
     return pile_id >= data_.size() || pile_id < 0;
   }
+  State Parent(const Action &) const;
   size_type Size() const { return data_.size(); }
   void UndoAction(const Action &);
   unsigned &operator[](int);

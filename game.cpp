@@ -156,12 +156,19 @@ void Game::Train(int episodes) {
     while (true) {
       first_player_->Step(this, false);
       if (IsTerminal()) {
+        if (dynamic_cast<MonteCarloAgent *>(first_player_)) {
+          first_player_->Update(first_player_->current_state_, state_, reward_);
+        }
         second_player_->Update(second_player_->current_state_, state_,
                                -reward_);
         break;
       }
       second_player_->Step(this, false);
       if (IsTerminal()) {
+        if (dynamic_cast<MonteCarloAgent *>(second_player_)) {
+          second_player_->Update(second_player_->current_state_, state_,
+                                 reward_);
+        }
         first_player_->Update(first_player_->current_state_, state_, -reward_);
         break;
       }
@@ -169,11 +176,11 @@ void Game::Train(int episodes) {
     Reset();
     if ((i + 1) % kCheckPoint == 0) {
       if (auto first_player =
-          dynamic_cast<EpsilonGreedyInterface *>(first_player_)) {
+          dynamic_cast<EpsilonGreedyPolicy *>(first_player_)) {
         first_player->UpdateEpsilon();
       }
       if (auto second_player =
-          dynamic_cast<EpsilonGreedyInterface *>(second_player_)) {
+          dynamic_cast<EpsilonGreedyPolicy *>(second_player_)) {
         second_player->UpdateEpsilon();
       }
       std::cout << std::fixed << std::setprecision(kPrecision) << "Epoch "
@@ -184,8 +191,9 @@ void Game::Train(int episodes) {
       }
       if (auto second_player = dynamic_cast<RLAgent *>(second_player_)) {
         std::cout << ", player 2 optimal actions ratio: "
-                  << second_player->OptimalActionsRatio() << std::endl;
+                  << second_player->OptimalActionsRatio();
       }
+      std::cout << std::endl;
     }
   }
 }
