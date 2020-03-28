@@ -31,14 +31,14 @@ class Game {
  public:
   using Reward = double;
   Game() = default;
-  explicit Game(State state)
-      : state_(std::move(state)) { initial_state_ = state_; }
+  explicit Game(State state);
   Game(State state, Agent *first_player, Agent *second_player);
   Game(const Game &);
   Game(Game &&) noexcept;
   Game &operator=(const Game &);
   Game &operator=(Game &&) noexcept;
   ~Game() { RemoveFromAgents(); }
+  std::vector<State> GetAllStates() const { return all_states_; }
   Agent *GetFirstPlayer() { return first_player_; }
   const Agent *GetFirstPlayer() const { return first_player_; }
   State GetInitialState() const { return initial_state_; }
@@ -65,6 +65,7 @@ class Game {
  private:
   State initial_state_;
   State state_;
+  std::vector<State> all_states_;
   Reward reward_ = 0.0;
   Agent *first_player_ = nullptr;
   Agent *second_player_ = nullptr;

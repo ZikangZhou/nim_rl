@@ -4,17 +4,24 @@
 
 #include "game.h"
 
+Game::Game(State state) : state_(std::move(state)) {
+  initial_state_ = state_;
+  all_states_ = initial_state_.GetAllStates();
+}
+
 Game::Game(State state, Agent *first_player, Agent *second_player)
     : state_(std::move(state)),
       first_player_(first_player),
       second_player_(second_player) {
   initial_state_ = state_;
+  all_states_ = initial_state_.GetAllStates();
   AddToAgents();
 }
 
 Game::Game(const Game &game)
     : state_(game.state_),
       initial_state_(game.initial_state_),
+      all_states_(game.all_states_),
       reward_(game.reward_),
       first_player_(game.first_player_),
       second_player_(game.second_player_) { AddToAgents(); }
@@ -22,12 +29,14 @@ Game::Game(const Game &game)
 Game::Game(Game &&game) noexcept
     : state_(std::move(game.state_)),
       initial_state_(std::move(game.initial_state_)),
+      all_states_(std::move(game.all_states_)),
       reward_(game.reward_) { MoveAgents(&game); }
 
 Game &Game::operator=(const Game &rhs) {
   RemoveFromAgents();
   state_ = rhs.state_;
   initial_state_ = rhs.initial_state_;
+  all_states_ = rhs.all_states_;
   reward_ = rhs.reward_;
   first_player_ = rhs.first_player_;
   second_player_ = rhs.second_player_;
@@ -40,6 +49,7 @@ Game &Game::operator=(Game &&rhs) noexcept {
     RemoveFromAgents();
     state_ = std::move(rhs.state_);
     initial_state_ = std::move(rhs.initial_state_);
+    all_states_ = std::move(rhs.all_states_);
     reward_ = rhs.reward_;
     MoveAgents(&rhs);
   }
@@ -165,11 +175,11 @@ void Game::Train(int episodes) {
       }
       second_player_->Step(this, false);
       if (IsTerminal()) {
+        first_player_->Update(first_player_->current_state_, state_, -reward_);
         if (dynamic_cast<MonteCarloAgent *>(second_player_)) {
           second_player_->Update(second_player_->current_state_, state_,
                                  reward_);
         }
-        first_player_->Update(first_player_->current_state_, state_, -reward_);
         break;
       }
     }
@@ -215,6 +225,7 @@ void Game::MoveAgents(Game *moved_from) {
     AddToAgents();
     moved_from->state_.Clear();
     moved_from->initial_state_.Clear();
+    moved_from->all_states_.clear();
     moved_from->first_player_ = moved_from->second_player_ = nullptr;
   }
 }
@@ -234,6 +245,7 @@ void swap(Game &lhs, Game &rhs) {
   rhs.RemoveFromAgents();
   swap(lhs.state_, rhs.state_);
   swap(lhs.initial_state_, rhs.initial_state_);
+  swap(lhs.all_states_, rhs.all_states_);
   swap(lhs.reward_, rhs.reward_);
   swap(lhs.first_player_, rhs.first_player_);
   swap(lhs.second_player_, rhs.second_player_);

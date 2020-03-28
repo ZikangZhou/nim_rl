@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <random>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -22,7 +23,7 @@ constexpr double kDefaultAlpha = 0.5;
 constexpr double kDefaultGamma = 1.0;
 constexpr double kDefaultEpsilon = 1.0;
 constexpr double kDefaultEpsilonDecayFactor = 0.9;
-constexpr double kMinEpsilon = 0.01;
+constexpr double kDefaultMinEpsilon = 0.01;
 
 namespace std {
 template<>
@@ -39,6 +40,8 @@ struct hash<std::pair<State, Action>> {
 }  // namespace std
 
 Action SampleAction(const std::vector<Action> &);
+
+State SampleState(const std::vector<State> &);
 
 class Game;
 
@@ -82,9 +85,11 @@ class EpsilonGreedyPolicy {
  public:
   explicit
   EpsilonGreedyPolicy(double epsilon = kDefaultEpsilon,
-                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
+                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                      double min_epsilon = kDefaultMinEpsilon)
       : epsilon_(epsilon),
-        epsilon_decay_factor_(epsilon_decay_factor) {}
+        epsilon_decay_factor_(epsilon_decay_factor),
+        min_epsilon_(min_epsilon) {}
   double GetEpsilon() const { return epsilon_; }
   double GetEpsilonDecayFactor() const { return epsilon_decay_factor_; }
   void SetEpsilon(double epsilon) { epsilon_ = epsilon; }
@@ -92,7 +97,7 @@ class EpsilonGreedyPolicy {
     epsilon_decay_factor_ = decay_epsilon;
   }
   void UpdateEpsilon() {
-    epsilon_ = std::max(kMinEpsilon, epsilon_ * epsilon_decay_factor_);
+    epsilon_ = std::max(min_epsilon_, epsilon_ * epsilon_decay_factor_);
   }
   Action EpsilonGreedy(const std::vector<Action> &legal_actions,
                        const std::vector<Action> &greedy_actions) {
@@ -103,6 +108,7 @@ class EpsilonGreedyPolicy {
  protected:
   double epsilon_;
   double epsilon_decay_factor_;
+  double min_epsilon_;
 
  private:
   std::uniform_real_distribution<> dist_epsilon_{0, 1};
@@ -152,7 +158,7 @@ class RLAgent : public Agent {
  public:
   using StateAction = std::pair<State, Action>;
   using StateProb = std::pair<State, double>;
-  using StateReward = std::pair<State, Reward>;
+  using TimeStep = std::tuple<State, Action, Reward>;
   RLAgent() = default;
   RLAgent(const RLAgent &) = delete;
   RLAgent(RLAgent &&) = default;
@@ -174,15 +180,12 @@ class RLAgent : public Agent {
   std::unordered_map<State, Reward> values_;
   Reward greedy_value_ = 0.0;
   std::vector<Action> legal_actions_;
-  unsigned long num_legal_actions_ = 0;
-  unsigned long num_greedy_actions_ = 0;
+  std::vector<Action> greedy_actions_;
   Action Policy(const State &, bool is_evaluation) override;
   virtual Action PolicyImpl(const std::vector<Action> &legal_actions,
                             const std::vector<Action> &greedy_actions) = 0;
 
  private:
-  std::uniform_real_distribution<> dist_value_{-1, 1};
-  std::mt19937 rng_{std::random_device{}()};
   void DoInitializeValues(const State &state, int pile_id);
 };
 
@@ -210,20 +213,17 @@ class ValueIterationAgent : public RLAgent {
   std::unordered_map<StateAction, std::vector<StateProb>> transitions_;
   std::vector<State> all_states_;
   double threshold_;
-  Action PolicyImpl(const std::vector<Action> &legal_actions,
+  Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
                     const std::vector<Action> &greedy_actions) override {
     return SampleAction(greedy_actions);
   }
   void ValueIteration(const State &);
 };
 
-class MonteCarloAgent : public RLAgent, public EpsilonGreedyPolicy {
+class MonteCarloAgent : public RLAgent {
  public:
   explicit
-  MonteCarloAgent(double gamma = kDefaultGamma,
-                  double epsilon = kDefaultEpsilon,
-                  double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : EpsilonGreedyPolicy(epsilon, epsilon_decay_factor), gamma_(gamma) {}
+  MonteCarloAgent(double gamma = kDefaultGamma) : gamma_(gamma) {}
   MonteCarloAgent(const MonteCarloAgent &) = delete;
   MonteCarloAgent(MonteCarloAgent &&) = default;
   MonteCarloAgent &operator=(const MonteCarloAgent &) = delete;
@@ -233,55 +233,67 @@ class MonteCarloAgent : public RLAgent, public EpsilonGreedyPolicy {
   void Reset() override;
   void SetGamma(double gamma) { gamma_ = gamma; }
   Action Step(Game *, bool is_evaluation) override;
+  void Update(const State &current_state,
+              const State &next_state,
+              Reward reward) override;
 
  protected:
   double gamma_;
-  std::vector<StateReward> trajectory_;
+  std::vector<TimeStep> trajectory_;
   std::unordered_map<State, double> cumulative_sums_;
 
  private:
-  Action PolicyImpl(const std::vector<Action> &legal_actions,
+  Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
                     const std::vector<Action> &greedy_actions) override {
-    return EpsilonGreedy(legal_actions, greedy_actions);
+    return SampleAction(greedy_actions);
   }
 };
 
-class OnPolicyMonteCarloAgent : public MonteCarloAgent {
+class ESMonteCarloAgent : public MonteCarloAgent {
+ public:
+  explicit ESMonteCarloAgent(double gamma = kDefaultGamma)
+      : MonteCarloAgent(gamma) {}
+  ESMonteCarloAgent(const ESMonteCarloAgent &) = delete;
+  ESMonteCarloAgent(ESMonteCarloAgent &&) = default;
+  ESMonteCarloAgent &operator=(const ESMonteCarloAgent &) = delete;
+  ESMonteCarloAgent &operator=(ESMonteCarloAgent &&) = default;
+  Action Step(Game *, bool is_evaluation) override;
+};
+
+class OnPolicyMonteCarloAgent
+    : public MonteCarloAgent, public EpsilonGreedyPolicy {
  public:
   explicit OnPolicyMonteCarloAgent(double gamma = kDefaultGamma,
                                    double epsilon = kDefaultEpsilon,
                                    double epsilon_decay_factor
-                                   = kDefaultEpsilonDecayFactor)
-      : MonteCarloAgent(gamma, epsilon, epsilon_decay_factor) {}
+                                   = kDefaultEpsilonDecayFactor,
+                                   double min_epsilon = kDefaultMinEpsilon)
+      : MonteCarloAgent(gamma),
+        EpsilonGreedyPolicy(epsilon, epsilon_decay_factor, min_epsilon) {}
   OnPolicyMonteCarloAgent(const OnPolicyMonteCarloAgent &) = delete;
   OnPolicyMonteCarloAgent(OnPolicyMonteCarloAgent &&) = default;
   OnPolicyMonteCarloAgent &operator=(const OnPolicyMonteCarloAgent &) = delete;
   OnPolicyMonteCarloAgent &operator=(OnPolicyMonteCarloAgent &&) = default;
-  void Update(const State &current_state,
-              const State &next_state,
-              Reward reward) override;
 };
 
-class OffPolicyMonteCarloAgent : public MonteCarloAgent {
+class OffPolicyMonteCarloAgent
+    : public MonteCarloAgent, public EpsilonGreedyPolicy {
  public:
   explicit OffPolicyMonteCarloAgent(double gamma = kDefaultGamma,
                                     double epsilon = kDefaultEpsilon,
                                     double epsilon_decay_factor
-                                    = kDefaultEpsilonDecayFactor)
-      : MonteCarloAgent(gamma, epsilon, epsilon_decay_factor) {}
+                                    = kDefaultEpsilonDecayFactor,
+                                    double min_epsilon = kDefaultMinEpsilon)
+      : MonteCarloAgent(gamma),
+        EpsilonGreedyPolicy(epsilon, epsilon_decay_factor, min_epsilon) {}
   OffPolicyMonteCarloAgent(const OffPolicyMonteCarloAgent &) = delete;
   OffPolicyMonteCarloAgent(OffPolicyMonteCarloAgent &&) = default;
   OffPolicyMonteCarloAgent &
   operator=(const OffPolicyMonteCarloAgent &) = delete;
   OffPolicyMonteCarloAgent &operator=(OffPolicyMonteCarloAgent &&) = default;
-  void Reset() override;
-  Action Step(Game *, bool is_evaluation) override;
   void Update(const State &current_state,
               const State &next_state,
               Reward reward) override;
-
- private:
-  std::vector<Action> actions_trajectory_;
 };
 
 class TDAgent : public RLAgent, public EpsilonGreedyPolicy {
@@ -289,8 +301,9 @@ class TDAgent : public RLAgent, public EpsilonGreedyPolicy {
   explicit TDAgent(double alpha = kDefaultAlpha,
                    double gamma = kDefaultGamma,
                    double epsilon = kDefaultEpsilon,
-                   double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : EpsilonGreedyPolicy(epsilon, epsilon_decay_factor),
+                   double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                   double min_epsilon = kDefaultMinEpsilon)
+      : EpsilonGreedyPolicy(epsilon, epsilon_decay_factor, min_epsilon),
         alpha_(alpha),
         gamma_(gamma) {}
   TDAgent(const TDAgent &) = delete;
@@ -318,8 +331,9 @@ class QLearningAgent : public TDAgent {
   QLearningAgent(double alpha = kDefaultAlpha,
                  double gamma = kDefaultGamma,
                  double epsilon = kDefaultEpsilon,
-                 double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                 double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                 double min_epsilon = kDefaultMinEpsilon)
+      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor, min_epsilon) {}
   QLearningAgent(const QLearningAgent &) = delete;
   QLearningAgent(QLearningAgent &&) = default;
   QLearningAgent &operator=(const QLearningAgent &) = delete;
@@ -334,8 +348,9 @@ class SarsaAgent : public TDAgent {
   explicit SarsaAgent(double alpha = kDefaultAlpha,
                       double gamma = kDefaultGamma,
                       double epsilon = kDefaultEpsilon,
-                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                      double min_epsilon = kDefaultMinEpsilon)
+      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor, min_epsilon) {}
   SarsaAgent(const SarsaAgent &) = delete;
   SarsaAgent(SarsaAgent &&) = default;
   SarsaAgent &operator=(const SarsaAgent &) = delete;
@@ -351,8 +366,9 @@ class ExpectedSarsaAgent : public TDAgent {
   ExpectedSarsaAgent(double alpha = kDefaultAlpha,
                      double gamma = kDefaultGamma,
                      double epsilon = kDefaultEpsilon,
-                     double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                     double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                     double min_epsilon = kDefaultMinEpsilon)
+      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor, min_epsilon) {}
   ExpectedSarsaAgent(const ExpectedSarsaAgent &) = delete;
   ExpectedSarsaAgent(ExpectedSarsaAgent &&) = default;
   ExpectedSarsaAgent &operator=(const ExpectedSarsaAgent &) = delete;
@@ -379,8 +395,9 @@ class DoubleLearningAgent : public TDAgent {
   DoubleLearningAgent(double alpha = kDefaultAlpha,
                       double gamma = kDefaultGamma,
                       double epsilon = kDefaultEpsilon,
-                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                      double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                      double min_epsilon = kDefaultMinEpsilon)
+      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor, min_epsilon) {}
   DoubleLearningAgent(const DoubleLearningAgent &) = delete;
   DoubleLearningAgent(DoubleLearningAgent &&) = default;
   DoubleLearningAgent &operator=(const DoubleLearningAgent &) = delete;
@@ -418,8 +435,10 @@ class DoubleQLearningAgent : public DoubleLearningAgent {
   DoubleQLearningAgent(double alpha = kDefaultAlpha,
                        double gamma = kDefaultGamma,
                        double epsilon = kDefaultEpsilon,
-                       double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : DoubleLearningAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                       double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                       double min_epsilon = kDefaultMinEpsilon)
+      : DoubleLearningAgent(alpha, gamma, epsilon, epsilon_decay_factor,
+                            min_epsilon) {}
   DoubleQLearningAgent(const DoubleQLearningAgent &) = delete;
   DoubleQLearningAgent(DoubleQLearningAgent &&) = default;
   DoubleQLearningAgent &operator=(const DoubleQLearningAgent &) = delete;
@@ -438,8 +457,10 @@ class DoubleSarsaAgent : public DoubleLearningAgent {
   DoubleSarsaAgent(double alpha = kDefaultAlpha,
                    double gamma = kDefaultGamma,
                    double epsilon = kDefaultEpsilon,
-                   double epsilon_decay_factor = kDefaultEpsilonDecayFactor)
-      : DoubleLearningAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                   double epsilon_decay_factor = kDefaultEpsilonDecayFactor,
+                   double min_epsilon = kDefaultMinEpsilon)
+      : DoubleLearningAgent(alpha, gamma, epsilon, epsilon_decay_factor,
+                            min_epsilon) {}
   DoubleSarsaAgent(const DoubleSarsaAgent &) = delete;
   DoubleSarsaAgent(DoubleSarsaAgent &&) = default;
   DoubleSarsaAgent &operator=(const DoubleSarsaAgent &) = delete;
@@ -458,8 +479,10 @@ class DoubleExpectedSarsaAgent : public DoubleLearningAgent {
                                     double gamma = kDefaultGamma,
                                     double epsilon = kDefaultEpsilon,
                                     double epsilon_decay_factor
-                                    = kDefaultEpsilonDecayFactor)
-      : DoubleLearningAgent(alpha, gamma, epsilon, epsilon_decay_factor) {}
+                                    = kDefaultEpsilonDecayFactor,
+                                    double min_epsilon = kDefaultMinEpsilon)
+      : DoubleLearningAgent(alpha, gamma, epsilon, epsilon_decay_factor,
+                            min_epsilon) {}
   DoubleExpectedSarsaAgent(const DoubleExpectedSarsaAgent &) = delete;
   DoubleExpectedSarsaAgent(DoubleExpectedSarsaAgent &&) = default;
   DoubleExpectedSarsaAgent &
