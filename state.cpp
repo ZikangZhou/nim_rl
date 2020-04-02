@@ -48,27 +48,54 @@ void State::ApplyAction(const Action &action) {
 }
 
 State State::Child(const Action &action) const {
-  State child(*this);
-  child.ApplyAction(action);
-  return child;
+  if (IsTerminal()) {
+    return State();
+  } else {
+    State child(*this);
+    child.ApplyAction(action);
+    return child;
+  }
 }
 
 std::vector<State> State::Children() const {
   std::vector<State> children;
   State state(*this);
-  for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
-    for (int num_objects = 0; num_objects != data_[pile_id]; ++num_objects) {
-      state[pile_id] = static_cast<unsigned>(num_objects);
-      children.push_back(state);
+  if (state.IsTerminal()) {
+    children.emplace_back();
+  } else {
+    for (int pile_id = 0; pile_id != data_.size(); ++pile_id) {
+      for (int num_objects = 0; num_objects != data_[pile_id]; ++num_objects) {
+        state[pile_id] = static_cast<unsigned>(num_objects);
+        children.push_back(state);
+      }
+      state[pile_id] = data_[pile_id];
     }
-    state[pile_id] = data_[pile_id];
   }
   return children;
 }
 
 std::vector<State> State::GetAllStates() const {
+  std::vector<unsigned> initial_state(data_);
+  std::sort(initial_state.begin(), initial_state.end());
   std::vector<State> all_states;
-  DoGetAllStates(*this, 0, &all_states);
+  all_states.reserve(initial_state[0] + 1);
+  for (int num_objects = 0; num_objects != initial_state[0] + 1;
+       ++num_objects) {
+    all_states.emplace_back(1, num_objects);
+  }
+  std::vector<State> new_all_states;
+  for (int pile_id = 1; pile_id < initial_state.size(); ++pile_id) {
+    for (const auto &state : all_states) {
+      for (unsigned num_objects = state.data_.back();
+           num_objects != initial_state[pile_id] + 1; ++num_objects) {
+        State next_state(state);
+        next_state.data_.push_back(num_objects);
+        new_all_states.emplace_back(std::move(next_state));
+      }
+    }
+    std::swap(all_states, new_all_states);
+    new_all_states.clear();
+  }
   return all_states;
 }
 

@@ -6,6 +6,8 @@
 #define NIM_AGENT_H_
 
 #include <algorithm>
+#include <climits>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <random>
@@ -24,6 +26,7 @@ constexpr double kDefaultGamma = 1.0;
 constexpr double kDefaultEpsilon = 1.0;
 constexpr double kDefaultEpsilonDecayFactor = 0.9;
 constexpr double kDefaultMinEpsilon = 0.01;
+constexpr int kDefaultN = 1;
 
 namespace std {
 template<>
@@ -38,6 +41,11 @@ struct hash<std::pair<State, Action>> {
   }
 };
 }  // namespace std
+
+enum class ImportanceSampling {
+  kWeighted,
+  kNormal,
+};
 
 Action SampleAction(const std::vector<Action> &);
 
@@ -57,22 +65,17 @@ class Agent {
   Agent &operator=(const Agent &) = delete;
   Agent &operator=(Agent &&) noexcept;
   virtual ~Agent() { RemoveFromGames(); }
-  State GetCurrentState() const { return current_state_; }
   std::unordered_set<Game *> GetGames() const { return games_; }
+  virtual void Initialize(const std::vector<State> &) {}
   virtual void Reset() { current_state_ = State(); }
-  template<typename T>
-  void SetCurrentState(T &&current_state) {
-    current_state_ = std::forward<T>(current_state);
-  }
   virtual Action Step(Game *, bool is_evaluation);
-  virtual void Update(const State &current_state,
-                      const State &next_state,
-                      Reward reward) { current_state_ = next_state; }
 
  protected:
   State current_state_;
   std::unordered_set<Game *> games_;
   virtual Action Policy(const State &, bool is_evaluation) = 0;
+  virtual void Update(const State &update_state, const State &current_state,
+                      Reward reward) { current_state_ = current_state; }
 
  private:
   void AddGame(Game *game) { games_.insert(game); }
@@ -99,16 +102,16 @@ class EpsilonGreedyPolicy {
   void UpdateEpsilon() {
     epsilon_ = std::max(min_epsilon_, epsilon_ * epsilon_decay_factor_);
   }
-  Action EpsilonGreedy(const std::vector<Action> &legal_actions,
-                       const std::vector<Action> &greedy_actions) {
-    return (dist_epsilon_(rng_) < epsilon_) ? SampleAction(legal_actions)
-                                            : SampleAction(greedy_actions);
-  }
 
  protected:
   double epsilon_;
   double epsilon_decay_factor_;
   double min_epsilon_;
+  Action EpsilonGreedy(const std::vector<Action> &legal_actions,
+                       const std::vector<Action> &greedy_actions) {
+    return (dist_epsilon_(rng_) < epsilon_) ? SampleAction(legal_actions)
+                                            : SampleAction(greedy_actions);
+  }
 
  private:
   std::uniform_real_distribution<> dist_epsilon_{0, 1};
@@ -166,7 +169,7 @@ class RLAgent : public Agent {
   RLAgent &operator=(RLAgent &&) = default;
   virtual std::unordered_map<State,
                              Reward> GetValues() const { return values_; }
-  virtual void InitializeValues(const State &);
+  void Initialize(const std::vector<State> &) override;
   double OptimalActionsRatio();
   void Reset() override;
   virtual void SetValues(const std::unordered_map<State, Reward> &values) {
@@ -184,9 +187,6 @@ class RLAgent : public Agent {
   Action Policy(const State &, bool is_evaluation) override;
   virtual Action PolicyImpl(const std::vector<Action> &legal_actions,
                             const std::vector<Action> &greedy_actions) = 0;
-
- private:
-  void DoInitializeValues(const State &state, int pile_id);
 };
 
 class ValueIterationAgent : public RLAgent {
@@ -202,7 +202,7 @@ class ValueIterationAgent : public RLAgent {
                      std::vector<StateProb>> GetTransitions() const {
     return transitions_;
   }
-  void InitializeValues(const State &) override;
+  void Initialize(const std::vector<State> &) override;
   void SetThreshold(double threshold) { threshold_ = threshold; }
   template<typename T>
   void SetTransitions(T &&transitions) {
@@ -211,13 +211,12 @@ class ValueIterationAgent : public RLAgent {
 
  private:
   std::unordered_map<StateAction, std::vector<StateProb>> transitions_;
-  std::vector<State> all_states_;
   double threshold_;
   Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
                     const std::vector<Action> &greedy_actions) override {
     return SampleAction(greedy_actions);
   }
-  void ValueIteration(const State &);
+  void ValueIteration(const std::vector<State> &);
 };
 
 class MonteCarloAgent : public RLAgent {
@@ -229,18 +228,16 @@ class MonteCarloAgent : public RLAgent {
   MonteCarloAgent &operator=(const MonteCarloAgent &) = delete;
   MonteCarloAgent &operator=(MonteCarloAgent &&) = default;
   double GetGamma() const { return gamma_; }
-  void InitializeValues(const State &) override;
+  void Initialize(const std::vector<State> &) override;
   void Reset() override;
   void SetGamma(double gamma) { gamma_ = gamma; }
   Action Step(Game *, bool is_evaluation) override;
-  void Update(const State &current_state,
-              const State &next_state,
-              Reward reward) override;
 
  protected:
   double gamma_;
   std::vector<TimeStep> trajectory_;
   std::unordered_map<State, double> cumulative_sums_;
+  virtual void Update();
 
  private:
   Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
@@ -274,26 +271,41 @@ class OnPolicyMonteCarloAgent
   OnPolicyMonteCarloAgent(OnPolicyMonteCarloAgent &&) = default;
   OnPolicyMonteCarloAgent &operator=(const OnPolicyMonteCarloAgent &) = delete;
   OnPolicyMonteCarloAgent &operator=(OnPolicyMonteCarloAgent &&) = default;
+
+ private:
+  Action PolicyImpl(const std::vector<Action> &legal_actions,
+                    const std::vector<Action> &greedy_actions) override {
+    return EpsilonGreedy(legal_actions, greedy_actions);
+  }
 };
 
 class OffPolicyMonteCarloAgent
     : public MonteCarloAgent, public EpsilonGreedyPolicy {
  public:
+
   explicit OffPolicyMonteCarloAgent(double gamma = kDefaultGamma,
+                                    ImportanceSampling importance_sampling
+                                    = ImportanceSampling::kWeighted,
                                     double epsilon = kDefaultEpsilon,
                                     double epsilon_decay_factor
                                     = kDefaultEpsilonDecayFactor,
                                     double min_epsilon = kDefaultMinEpsilon)
       : MonteCarloAgent(gamma),
+        importance_sampling_(importance_sampling),
         EpsilonGreedyPolicy(epsilon, epsilon_decay_factor, min_epsilon) {}
   OffPolicyMonteCarloAgent(const OffPolicyMonteCarloAgent &) = delete;
   OffPolicyMonteCarloAgent(OffPolicyMonteCarloAgent &&) = default;
   OffPolicyMonteCarloAgent &
   operator=(const OffPolicyMonteCarloAgent &) = delete;
   OffPolicyMonteCarloAgent &operator=(OffPolicyMonteCarloAgent &&) = default;
-  void Update(const State &current_state,
-              const State &next_state,
-              Reward reward) override;
+
+ private:
+  ImportanceSampling importance_sampling_;
+  Action PolicyImpl(const std::vector<Action> &legal_actions,
+                    const std::vector<Action> &greedy_actions) override {
+    return EpsilonGreedy(legal_actions, greedy_actions);
+  }
+  void Update() override;
 };
 
 class TDAgent : public RLAgent, public EpsilonGreedyPolicy {
@@ -338,8 +350,9 @@ class QLearningAgent : public TDAgent {
   QLearningAgent(QLearningAgent &&) = default;
   QLearningAgent &operator=(const QLearningAgent &) = delete;
   QLearningAgent &operator=(QLearningAgent &&) = default;
-  void Update(const State &current_state,
-              const State &next_state,
+
+ private:
+  void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };
 
@@ -355,8 +368,9 @@ class SarsaAgent : public TDAgent {
   SarsaAgent(SarsaAgent &&) = default;
   SarsaAgent &operator=(const SarsaAgent &) = delete;
   SarsaAgent &operator=(SarsaAgent &&) = default;
-  void Update(const State &current_state,
-              const State &next_state,
+
+ private:
+  void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };
 
@@ -373,20 +387,17 @@ class ExpectedSarsaAgent : public TDAgent {
   ExpectedSarsaAgent(ExpectedSarsaAgent &&) = default;
   ExpectedSarsaAgent &operator=(const ExpectedSarsaAgent &) = delete;
   ExpectedSarsaAgent &operator=(ExpectedSarsaAgent &&) = default;
-  std::vector<State> &GetNextStates() { return next_states_; }
-  const std::vector<State> &GetNextStates() const { return next_states_; }
   void Reset() override;
-  template<typename T>
-  void SetNextStates(T &&next_states) {
-    next_states_ = std::forward<T>(next_states);
-  }
-  void Update(const State &current_state,
-              const State &next_state,
-              Reward reward) override;
 
  private:
   std::vector<State> next_states_;
   Action Policy(const State &, bool is_evaluation) override;
+  template<typename T>
+  void SetNextStates(T &&next_states) {
+    next_states_ = std::forward<T>(next_states);
+  }
+  void Update(const State &update_state, const State &current_state,
+              Reward reward) override;
 };
 
 class DoubleLearningAgent : public TDAgent {
@@ -403,7 +414,7 @@ class DoubleLearningAgent : public TDAgent {
   DoubleLearningAgent &operator=(const DoubleLearningAgent &) = delete;
   DoubleLearningAgent &operator=(DoubleLearningAgent &&) = default;
   std::unordered_map<State, Reward> GetValues() const override;
-  void InitializeValues(const State &) override;
+  void Initialize(const std::vector<State> &) override;
   void Reset() override;
   void SetValues(const std::unordered_map<State, Reward> &values) override {
     values_ = values_2_ = values;
@@ -411,18 +422,16 @@ class DoubleLearningAgent : public TDAgent {
   void SetValues(std::unordered_map<State, Reward> &&values) override {
     values_ = values_2_ = std::move(values);
   }
-  void Update(const State &current_state,
-              const State &next_state,
-              Reward reward) override;
 
  protected:
   std::unordered_map<State, Reward> values_2_;
   bool flag_ = false;
-  virtual void DoUpdate(const State &current_state,
-                        const State &next_state,
+  virtual void DoUpdate(const State &current_state, const State &next_state,
                         Reward reward,
                         std::unordered_map<State, Reward> *values) = 0;
   Action Policy(const State &, bool is_evaluation) override;
+  void Update(const State &update_state, const State &current_state,
+              Reward reward) override;
 
  private:
   std::bernoulli_distribution dist_flag_{};
@@ -445,8 +454,8 @@ class DoubleQLearningAgent : public DoubleLearningAgent {
   DoubleQLearningAgent &operator=(DoubleQLearningAgent &&) = default;
 
  private:
-  void DoUpdate(const State &current_state,
-                const State &next_state,
+  void DoUpdate(const State &update_state,
+                const State &current_state,
                 Reward reward,
                 std::unordered_map<State, Reward> *values) override;
 };
@@ -467,8 +476,8 @@ class DoubleSarsaAgent : public DoubleLearningAgent {
   DoubleSarsaAgent &operator=(DoubleSarsaAgent &&) = default;
 
  private:
-  void DoUpdate(const State &current_state,
-                const State &next_state,
+  void DoUpdate(const State &update_state,
+                const State &current_state,
                 Reward reward,
                 std::unordered_map<State, Reward> *values) override;
 };
@@ -488,23 +497,102 @@ class DoubleExpectedSarsaAgent : public DoubleLearningAgent {
   DoubleExpectedSarsaAgent &
   operator=(const DoubleExpectedSarsaAgent &) = delete;
   DoubleExpectedSarsaAgent &operator=(DoubleExpectedSarsaAgent &&) = default;
-  std::vector<State> GetNextStates() const { return next_states_; }
   void Reset() override;
+
+ private:
+  std::vector<State> next_states_;
+  void DoUpdate(const State &update_state,
+                const State &current_state,
+                Reward reward,
+                std::unordered_map<State, Reward> *values) override;
+  Action Policy(const State &, bool is_evaluation) override;
   template<typename T>
   void SetNextStates(T &&next_states) {
     next_states_ = std::forward<T>(next_states);
   }
+};
+
+class NStepBootstrappingAgent : public TDAgent {
+ public:
+  explicit NStepBootstrappingAgent(double alpha = kDefaultAlpha,
+                                   double gamma = kDefaultGamma,
+                                   int n = kDefaultN,
+                                   double epsilon = kDefaultEpsilon,
+                                   double epsilon_decay_factor
+                                   = kDefaultEpsilonDecayFactor,
+                                   double min_epsilon = kDefaultMinEpsilon)
+      : TDAgent(alpha, gamma, epsilon, epsilon_decay_factor, min_epsilon),
+        n_(n) {}
+  NStepBootstrappingAgent(const NStepBootstrappingAgent &) = delete;
+  NStepBootstrappingAgent(NStepBootstrappingAgent &&) = default;
+  NStepBootstrappingAgent &operator=(const NStepBootstrappingAgent &) = delete;
+  NStepBootstrappingAgent &operator=(NStepBootstrappingAgent &&) = default;
+  int GetN() const { return n_; }
+  void Reset() override;
+  void SetN(int n) { n_ = n; }
+  Action Step(Game *, bool is_evaluation) override;
+
+ protected:
+  int n_;
+  int current_time_ = 0;
+  int terminal_time_ = INT_MAX - 1;
+  int update_time_ = 0;
+  std::vector<TimeStep> trajectory_;
+  virtual void Update(const State &update_state,
+                      const State &current_state) = 0;
+};
+
+class NStepSarsaAgent : public NStepBootstrappingAgent {
+ public:
+  explicit NStepSarsaAgent(double alpha = kDefaultAlpha,
+                           double gamma = kDefaultGamma,
+                           int n = kDefaultN,
+                           double epsilon = kDefaultEpsilon,
+                           double epsilon_decay_factor
+                           = kDefaultEpsilonDecayFactor,
+                           double min_epsilon = kDefaultMinEpsilon)
+      : NStepBootstrappingAgent(alpha, gamma, n, epsilon, epsilon_decay_factor,
+                                min_epsilon) {}
+  NStepSarsaAgent(const NStepSarsaAgent &) = delete;
+  NStepSarsaAgent(NStepSarsaAgent &&) = default;
+  NStepSarsaAgent &operator=(const NStepSarsaAgent &) = delete;
+  NStepSarsaAgent &operator=(NStepSarsaAgent &&) = default;
+
+ private:
+  void Update(const State &update_state, const State &current_state) override;
+};
+
+class NStepExpectedSarsaAgent : public NStepBootstrappingAgent {
+ public:
+  explicit NStepExpectedSarsaAgent(double alpha = kDefaultAlpha,
+                                   double gamma = kDefaultGamma,
+                                   int n = kDefaultN,
+                                   double epsilon = kDefaultEpsilon,
+                                   double epsilon_decay_factor
+                                   = kDefaultEpsilonDecayFactor,
+                                   double min_epsilon = kDefaultMinEpsilon)
+      : NStepBootstrappingAgent(alpha, gamma, n, epsilon, epsilon_decay_factor,
+                                min_epsilon) {}
+  NStepExpectedSarsaAgent(const NStepExpectedSarsaAgent &) = delete;
+  NStepExpectedSarsaAgent(NStepExpectedSarsaAgent &&) = default;
+  NStepExpectedSarsaAgent &operator=(const NStepExpectedSarsaAgent &) = delete;
+  NStepExpectedSarsaAgent &operator=(NStepExpectedSarsaAgent &&) = default;
+  void Reset() override;
 
  private:
   std::vector<State> next_states_;
-  void DoUpdate(const State &current_state,
-                const State &next_state,
-                Reward reward,
-                std::unordered_map<State, Reward> *values) override;
   Action Policy(const State &, bool is_evaluation) override;
+  template<typename T>
+  void SetNextStates(T &&next_states) {
+    next_states_ = std::forward<T>(next_states);
+  }
+  void Update(const State &update_state, const State &current_state) override;
 };
 
 std::ostream &operator<<(std::ostream &,
                          const std::unordered_map<State, Agent::Reward> &);
+
+std::ostream &operator<<(std::ostream &,
+                        const std::vector<RLAgent::TimeStep> &);
 
 #endif  // NIM_AGENT_H_

@@ -17,6 +17,10 @@ string
 /Users/zhouzikang/CLionProjects/Nim/agent.h
 algorithm
 -
+climits
+-
+cmath
+-
 iomanip
 -
 iostream

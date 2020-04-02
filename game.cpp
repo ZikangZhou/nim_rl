@@ -57,11 +57,15 @@ Game &Game::operator=(Game &&rhs) noexcept {
 }
 
 void Game::Play(int episodes) {
-  if (episodes < 0) throw std::invalid_argument("Episodes must >= 0");
+  if (episodes < 0) {
+    throw std::invalid_argument("Episodes must >= 0");
+  }
   if (!first_player_ || !second_player_) {
     throw std::runtime_error("Agent should not be nullptr");
   }
-  if (state_.IsEmpty()) throw std::runtime_error("State should not be empty");
+  if (state_.IsEmpty()) {
+    throw std::runtime_error("State should not be empty");
+  }
   double win_first_player = 0.0, win_second_player = 0.0;
   Action action;
   bool play_with_human = typeid(*first_player_) == typeid(HumanAgent)
@@ -145,45 +149,37 @@ void Game::Step(const Action &action) {
     state_.ApplyAction(action);
     reward_ = IsTerminal() ? kWinReward : kTieReward;
   } else {
+    state_ = State();
     reward_ = kLoseReward;
   }
 }
 
 void Game::Train(int episodes) {
-  if (episodes < 0) throw std::invalid_argument("Episodes must >= 0");
+  if (episodes < 0) {
+    throw std::invalid_argument("Episodes must >= 0");
+  }
   if (!first_player_ || !second_player_) {
     throw std::runtime_error("Agent should not be nullptr");
   }
-  if (state_.IsEmpty()) throw std::runtime_error("State should not be empty");
+  if (state_.IsEmpty()) {
+    throw std::runtime_error("State should not be empty");
+  }
   Reset();
-  if (auto first_player = dynamic_cast<RLAgent *>(first_player_)) {
-    first_player->InitializeValues(initial_state_);
-  }
-  if (auto second_player = dynamic_cast<RLAgent *>(second_player_)) {
-    second_player->InitializeValues(initial_state_);
-  }
+  first_player_->Initialize(all_states_);
+  second_player_->Initialize(all_states_);
   for (int i = 0; i < episodes; ++i) {
     while (true) {
       first_player_->Step(this, false);
       if (IsTerminal()) {
-        if (dynamic_cast<MonteCarloAgent *>(first_player_)) {
-          first_player_->Update(first_player_->current_state_, state_, reward_);
-        }
-        second_player_->Update(second_player_->current_state_, state_,
-                               -reward_);
+        second_player_->Step(this, false);
         break;
       }
       second_player_->Step(this, false);
       if (IsTerminal()) {
-        first_player_->Update(first_player_->current_state_, state_, -reward_);
-        if (dynamic_cast<MonteCarloAgent *>(second_player_)) {
-          second_player_->Update(second_player_->current_state_, state_,
-                                 reward_);
-        }
+        first_player_->Step(this, false);
         break;
       }
     }
-    Reset();
     if ((i + 1) % kCheckPoint == 0) {
       if (auto first_player =
           dynamic_cast<EpsilonGreedyPolicy *>(first_player_)) {
@@ -194,17 +190,18 @@ void Game::Train(int episodes) {
         second_player->UpdateEpsilon();
       }
       std::cout << std::fixed << std::setprecision(kPrecision) << "Epoch "
-                << i + 1 << ": ";
+                << i + 1 << ":";
       if (auto first_player = dynamic_cast<RLAgent *>(first_player_)) {
-        std::cout << "player 1 optimal actions ratio: "
+        std::cout << " player 1 optimal actions ratio: "
                   << first_player->OptimalActionsRatio();
       }
       if (auto second_player = dynamic_cast<RLAgent *>(second_player_)) {
-        std::cout << ", player 2 optimal actions ratio: "
+        std::cout << " player 2 optimal actions ratio: "
                   << second_player->OptimalActionsRatio();
       }
       std::cout << std::endl;
     }
+    Reset();
   }
 }
 
