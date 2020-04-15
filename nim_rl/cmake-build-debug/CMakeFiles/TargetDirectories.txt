@@ -1,7 +1,0 @@
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl.dir
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/CMakeFiles/rebuild_cache.dir
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/CMakeFiles/edit_cache.dir
-/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/CMakeFiles/pynim.dir
