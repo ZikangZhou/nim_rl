@@ -10,4 +10,4 @@ Tabular-based Reinfrocement Learning methods are written in C++, while some
 Deep Reinfrocement Learning methods are written in Python. All of the core APIs 
 are exposed to Python using [pybind11](https://github.com/pybind/pybind11).
 
-[Install NimRL](docs/install.md) and start your journal!
+[Install NimRL](docs/install.md) and start your journal:)
