@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="nim_rl"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\python\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nim_rl">
+				<Option output="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/nim_rl" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/.."/>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/11.0.3/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 nim_rl"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nim_rl/fast">
+				<Option output="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/nim_rl" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/.."/>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/11.0.3/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 nim_rl/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nim_rl_core">
+				<Option output="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/nim_rl_core.objlib" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl"/>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/.."/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/11.0.3/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 nim_rl_core"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nim_rl_core/fast">
+				<Option output="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/nim_rl_core.objlib" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl"/>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/.."/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/11.0.3/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 nim_rl_core/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="pynim">
+				<Option output="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/pynim.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/.."/>
+					<Add directory="/usr/local/Cellar/python@2/2.7.15_1/Frameworks/Python.framework/Versions/2.7/include/python2.7"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/11.0.3/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 pynim"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="pynim/fast">
+				<Option output="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/pynim.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/.."/>
+					<Add directory="/usr/local/Cellar/python@2/2.7.15_1/Frameworks/Python.framework/Versions/2.7/include/python2.7"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/11.0.3/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 pynim/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/python/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/action/action.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/action/action.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/dp_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/dp_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/human_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/human_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/monte_carlo_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/monte_carlo_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/n_step_bootstrapping_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/n_step_bootstrapping_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/optimal_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/optimal_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/random_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/random_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/rl_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/rl_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/td_agent.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/agent/td_agent.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/action/action.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/dp_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/human_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/monte_carlo_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/n_step_bootstrapping_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/optimal_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/random_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/rl_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/agent/td_agent.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/environment/game.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/cmake-build-debug/CMakeFiles/nim_rl_core.dir/state/state.cpp.o">
+			<Option target="nim_rl"/>
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/environment/game.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/environment/game.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/exploration/exploration.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/python/pybind11/pynim.cpp">
+			<Option target="pynim"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/state/state.cpp">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/state/state.h">
+			<Option target="nim_rl_core"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/test/test.cpp">
+			<Option target="nim_rl"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/Users/zhouzikang/CLionProjects/nim_rl/nim_rl/python/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\python\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

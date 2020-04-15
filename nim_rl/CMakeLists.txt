@@ -21,7 +21,32 @@ endif()
 
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set (NIM_RL_CORE_FILES game.h game.cpp agent.h agent.cpp state.h state.cpp action.h action.cpp)
+set (NIM_RL_CORE_FILES
+        action/action.h
+        action/action.cpp
+        agent/agent.h
+        agent/agent.cpp
+        agent/dp_agent.h
+        agent/dp_agent.cpp
+        agent/human_agent.h
+        agent/human_agent.cpp
+        agent/monte_carlo_agent.h
+        agent/monte_carlo_agent.cpp
+        agent/n_step_bootstrapping_agent.h
+        agent/n_step_bootstrapping_agent.cpp
+        agent/optimal_agent.h
+        agent/optimal_agent.cpp
+        agent/random_agent.h
+        agent/random_agent.cpp
+        agent/rl_agent.h
+        agent/rl_agent.cpp
+        agent/td_agent.h
+        agent/td_agent.cpp
+        environment/game.h
+        environment/game.cpp
+        exploration/exploration.h
+        state/state.h
+        state/state.cpp)
 
 add_library(nim_rl_core OBJECT ${NIM_RL_CORE_FILES})
 target_include_directories (nim_rl_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -34,5 +59,5 @@ include_directories(..)
 
 add_subdirectory (python)
 
-add_executable(nim_rl main.cpp)
+add_executable(nim_rl test/test.cpp)
 target_link_libraries(nim_rl nim_rl_core)

@@ -1,0 +1,7 @@
+# pybind files
+recursive-include pybind11/include/pybind11 *.h
+recursive-include pybind11/pybind11 *.py
+include pybind11/CMakeLists.txt
+
+# nim_rl files
+recursive-include nim_rl CMakeLists.txt *.cc *.cpp *.h *.hpp

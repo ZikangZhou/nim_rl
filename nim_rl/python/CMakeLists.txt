@@ -15,17 +15,6 @@ elseif(Python_TARGET_VERSION VERSION_GREATER_EQUAL "3.0.0")
     endif()
 endif()
 
-#add_subdirectory(pybind11)
-#pybind11_add_module(pynim pybind11/pynim.cpp)
-
 add_library(pynim MODULE pybind11/pynim.cpp ${NIM_RL_OBJECTS})
 
 set_target_properties(pynim PROPERTIES PREFIX "")
-
-#if(APPLE)
-#    set_target_properties(pynim
-#            PROPERTIES
-#            LINK_FLAGS "-undefined dynamic_lookup"
-#            SUFFIX     ".so"
-#            )
-#endif()
