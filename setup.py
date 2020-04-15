@@ -62,8 +62,8 @@ class BuildExt(build_ext):
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp)
         env = os.environ.copy()
         subprocess.check_call(["make", "-j" + str(os.cpu_count())],
-                              cwd=self.build_temp,
-                              env=env)
+            cwd=self.build_temp,
+            env=env)
 
 
 setuptools.setup(
