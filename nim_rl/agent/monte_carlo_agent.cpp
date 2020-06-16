@@ -19,8 +19,8 @@ namespace nim_rl {
 
 void MonteCarloAgent::Initialize(const std::vector<State> &all_states) {
   RLAgent::Initialize(all_states);
-  for (const auto &kv : values_) {
-    cumulative_sums_.insert({kv.first, 0.0});
+  for (const auto &kv : *values_) {
+    cumulative_sums_[kv.first] = 0.0;
   }
 }
 
@@ -57,8 +57,8 @@ void MonteCarloAgent::Update(const State &/*update_state*/,
                              next_state;
                        }) == trajectory_.crend()) {
         ++cumulative_sums_[next_state];
-        values_[next_state] +=
-            (ret - values_[next_state]) / cumulative_sums_[next_state];
+        (*values_)[next_state] +=
+            (ret - (*values_)[next_state]) / cumulative_sums_[next_state];
       }
     }
   }
@@ -82,7 +82,8 @@ void OffPolicyMonteCarloAgent::Update(const State &/*update_state*/,
                                       Reward /*reward*/) {
   double ret = 0.0, weight = 1.0;
   double epsilon = epsilon_greedy_.GetEpsilon();
-  std::unordered_map<State, Reward> behavior_policy_values = values_;
+  std::shared_ptr<Values> behavior_policy_values =
+      std::make_shared<Values>(*values_);
   for (auto r_iter = trajectory_.crbegin(); r_iter != trajectory_.crend();
        ++r_iter) {
     const State &state = std::get<0>(*r_iter);
@@ -92,43 +93,45 @@ void OffPolicyMonteCarloAgent::Update(const State &/*update_state*/,
     ret = gamma_ * ret + std::get<2>(*r_iter);
     if (importance_sampling_ == ImportanceSampling::kNormal) {
       ++cumulative_sums_[next_state];
-      values_[next_state] +=
-          (weight * ret - values_[next_state]) / cumulative_sums_[next_state];
+      (*values_)[next_state] +=
+          (weight * ret - (*values_)[next_state])
+              / cumulative_sums_[next_state];
     } else if (importance_sampling_ == ImportanceSampling::kWeighted) {
       cumulative_sums_[next_state] += weight;
-      values_[next_state] +=
-          weight * (ret - values_[next_state]) / cumulative_sums_[next_state];
+      (*values_)[next_state] +=
+          weight * (ret - (*values_)[next_state])
+              / cumulative_sums_[next_state];
     }
     std::vector<Action> legal_actions = state.LegalActions();
     int num_legal_actions = legal_actions.size();
     Action target_policy_greedy_action =
         *std::max_element(legal_actions.begin(), legal_actions.end(),
                           [&](const Action &a1, const Action &a2) {
-                            return values_[state.Child(a1)]
-                                < values_[state.Child(a2)];
+                            return (*values_)[state.Child(a1)]
+                                < (*values_)[state.Child(a2)];
                           });
     double target_policy_greedy_value =
-        values_[state.Child(target_policy_greedy_action)];
-    if (values_[next_state] != target_policy_greedy_value) break;
+        (*values_)[state.Child(target_policy_greedy_action)];
+    if ((*values_)[next_state] != target_policy_greedy_value) break;
     int num_target_policy_greedy_actions =
         std::count_if(legal_actions.begin(), legal_actions.end(),
                       [&](const Action &action) {
-                        return values_[state.Child(action)] ==
+                        return (*values_)[state.Child(action)] ==
                             target_policy_greedy_value;
                       });
-    double behavior_policy_value = behavior_policy_values[next_state];
+    double behavior_policy_value = (*behavior_policy_values)[next_state];
     Action behavior_policy_greedy_action =
         *std::max_element(legal_actions.begin(), legal_actions.end(),
                           [&](const Action &a1, const Action &a2) {
-                            return behavior_policy_values[state.Child(a1)] <
-                                behavior_policy_values[state.Child(a2)];
+                            return (*behavior_policy_values)[state.Child(a1)] <
+                                (*behavior_policy_values)[state.Child(a2)];
                           });
     double behavior_policy_greedy_value =
-        behavior_policy_values[state.Child(behavior_policy_greedy_action)];
+        (*behavior_policy_values)[state.Child(behavior_policy_greedy_action)];
     int num_behavior_policy_greedy_actions =
         std::count_if(legal_actions.begin(), legal_actions.end(),
                       [&](const Action &action) {
-                        return behavior_policy_values[state.Child(action)] ==
+                        return (*behavior_policy_values)[state.Child(action)] ==
                             behavior_policy_greedy_value;
                       });
     if (behavior_policy_value == behavior_policy_greedy_value) {

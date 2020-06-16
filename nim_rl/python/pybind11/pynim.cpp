@@ -29,26 +29,57 @@
 #include "pybind11/include/pybind11/pybind11.h"
 #include "pybind11/include/pybind11/stl.h"
 
+template<typename T>
+class SmartPtr {
+ public:
+  using element_type = T;
+  explicit SmartPtr(T *p) {
+    PyObject *obj = pybind11::cast(p).ptr();
+    Py_INCREF(obj);
+    std::shared_ptr<PyObject> ptr(obj, [](PyObject *obj) { Py_DECREF(obj); });
+    ptr_ = std::shared_ptr<T>(ptr, p);
+  }
+  explicit SmartPtr(std::shared_ptr<T> p) : ptr_(p) {}
+  explicit operator std::shared_ptr<T>() { return ptr_; }
+  T *get() const { return ptr_.get(); }
+
+ private:
+  std::shared_ptr<T> ptr_;
+};
+
+PYBIND11_DECLARE_HOLDER_TYPE(T, SmartPtr<T>);
+
 namespace nim_rl {
 namespace {
 
-using Reward = RLAgent::Reward;
+using Reward = Agent::Reward;
 using Transitions = std::unordered_map<RLAgent::StateAction,
                                        std::vector<RLAgent::StateProb>>;
-using Values = std::unordered_map<State, Reward>;
+using Values = RLAgent::Values;
 
 namespace py = ::pybind11;
 
 template<class ExplorationBase = Exploration>
 class PyExploration : public ExplorationBase {
+ public:
   using ExplorationBase::ExplorationBase;
+  explicit PyExploration(const ExplorationBase &exploration_base)
+      : ExplorationBase(exploration_base) {}
+  ~PyExploration() override = default;
+  std::shared_ptr<Exploration> Clone() const override {
+    py::object obj = py::cast(this).attr("clone")();
+    auto keep_python_state_alive = std::make_shared<py::object>(obj);
+    auto ptr = obj.cast<PyExploration *>();
+    return std::shared_ptr<Exploration>(keep_python_state_alive, ptr);
+  }
   Action Explore(const std::vector<nim_rl::Action> &legal_actions,
                  const std::vector<nim_rl::Action> &greedy_actions) override {
     PYBIND11_OVERLOAD_PURE_NAME(Action, ExplorationBase, "explore", Explore,
                                 legal_actions, greedy_actions);
   }
-  void Update() override {
-    PYBIND11_OVERLOAD_PURE_NAME(void, ExplorationBase, "update", Update,);
+  void Update(int episode) override {
+    PYBIND11_OVERLOAD_PURE_NAME(void, ExplorationBase, "update", Update,
+                                episode);
   }
 };
 
@@ -57,10 +88,21 @@ class PyAgent : public AgentBase {
  public:
   using Reward = typename AgentBase::Reward;
   using AgentBase::AgentBase;
+  explicit PyAgent(const AgentBase &agent_base) : AgentBase(agent_base) {}
   ~PyAgent() override = default;
+  std::shared_ptr<Agent> Clone() const override {
+    py::object obj = py::cast(this).attr("clone")();
+    auto keep_python_state_alive = std::make_shared<py::object>(obj);
+    auto ptr = obj.cast<PyAgent *>();
+    return std::shared_ptr<Agent>(keep_python_state_alive, ptr);
+  }
   void Initialize(const std::vector<State> &all_states) override {
     PYBIND11_OVERLOAD_NAME(void, AgentBase, "initialize", Initialize,
                            all_states);
+  }
+  Action Policy(const State &state, bool is_evaluation) override {
+    PYBIND11_OVERLOAD_PURE_NAME(Action, AgentBase, "policy", Policy, state,
+                                is_evaluation);
   }
   void Reset() override {
     PYBIND11_OVERLOAD_NAME(void, AgentBase, "reset", Reset,);
@@ -68,12 +110,6 @@ class PyAgent : public AgentBase {
   Action Step(Game *game, bool is_evaluation) override {
     PYBIND11_OVERLOAD_NAME(Action, AgentBase, "step", Step, game,
                            is_evaluation);
-  }
-
- protected:
-  Action Policy(const State &state, bool is_evaluation) override {
-    PYBIND11_OVERLOAD_PURE_NAME(Action, AgentBase, "policy", Policy, state,
-                                is_evaluation);
   }
   void Update(const State &update_state, const State &current_state,
               Reward reward) override {
@@ -86,24 +122,37 @@ template<class RLAgentBase = RLAgent>
 class PyRLAgent : public PyAgent<RLAgentBase> {
  public:
   using PyAgent<RLAgentBase>::PyAgent;
+  explicit PyRLAgent(const PyAgent<RLAgentBase> &rl_agent_base)
+      : PyAgent<RLAgentBase>(rl_agent_base) {}
   ~PyRLAgent() override = default;
-  std::unordered_map<State, Reward> GetValues() const override {
+  std::shared_ptr<Agent> Clone() const override {
+    py::object obj = py::cast(this).attr("clone")();
+    auto keep_python_state_alive = std::make_shared<py::object>(obj);
+    auto ptr = obj.cast<PyRLAgent *>();
+    return std::shared_ptr<Agent>(keep_python_state_alive, ptr);
+  }
+  Values GetValues() const override {
     PYBIND11_OVERLOAD_NAME(Values, RLAgentBase, "get_values", GetValues,);
   }
-  void SetValues(const std::unordered_map<State, Reward> &values) override {
-    PYBIND11_OVERLOAD_NAME(void, RLAgentBase, "set_values", SetValues, values);
-  }
-  void UpdateExploration() override {
-    PYBIND11_OVERLOAD_NAME(void, RLAgentBase, "update_exploration",
-                           UpdateExploration,);
-  }
-
- protected:
   Action PolicyImpl(const std::vector<Action> &legal_actions,
                     const std::vector<Action> &greedy_actions) override {
     PYBIND11_OVERLOAD_PURE_NAME(Action, RLAgentBase, "policy_impl", PolicyImpl,
                                 legal_actions, greedy_actions);
   }
+  void SetValues(const Values &values) override {
+    PYBIND11_OVERLOAD_NAME(void, RLAgentBase, "set_values", SetValues, values);
+  }
+  void UpdateExploration(int episode) override {
+    PYBIND11_OVERLOAD_NAME(void, RLAgentBase, "update_exploration",
+                           UpdateExploration, episode);
+  }
+};
+
+template<class DPAgentBase = DPAgent>
+class PyDPAgent : public PyRLAgent<DPAgentBase> {
+ public:
+  using PyRLAgent<DPAgentBase>::PyRLAgent;
+  ~PyDPAgent() override = default;
 };
 
 template<class MonteCarloAgentBase = MonteCarloAgent>
@@ -125,14 +174,11 @@ class PyDoubleLearningAgent : public PyTDAgent<DoubleLearningAgentBase> {
  public:
   using PyTDAgent<DoubleLearningAgentBase>::PyTDAgent;
   ~PyDoubleLearningAgent() override = default;
-
- protected:
   void DoUpdate(const State &update_state, const State &current_state,
-                Reward reward,
-                std::unordered_map<State, Reward> *values) override {
+                Reward reward, Values *values) override {
     PYBIND11_OVERLOAD_PURE_NAME(void, DoubleLearningAgentBase, "do_update",
-                                DoUpdate, update_state, current_state, reward,
-                                values);
+                                DoUpdate, update_state, current_state,
+                                reward, values);
   }
 };
 
@@ -200,7 +246,7 @@ PYBIND11_MODULE(pynim, m) {
   m.attr("MIN_VALUE") = py::float_(nim_rl::kMinValue);
   m.attr("PRECISION") = py::int_(nim_rl::kPrecision);
 
-  py::class_<Game>(m, "Game").def(py::init<>())
+  py::class_<Game, std::shared_ptr<Game>>(m, "Game").def(py::init<>())
       .def(py::init<const State &>())
       .def(py::init<const State &, const Agent &, const Agent &>())
       .def("get_all_states", &Game::GetAllStates)
@@ -214,230 +260,356 @@ PYBIND11_MODULE(pynim, m) {
       .def("print_values", &Game::PrintValues)
       .def("render", &Game::Render)
       .def("reset", &Game::Reset)
-      .def("set_first_player", &Game::SetFirstPlayer<const Agent &>)
+      .def("set_first_player", &Game::SetFirstPlayer)
       .def("set_initial_state", &Game::SetInitialState<const State &>)
       .def("set_reward", &Game::SetReward)
-      .def("set_second_player", &Game::SetSecondPlayer<const Agent &>)
+      .def("set_second_player", &Game::SetSecondPlayer)
       .def("set_state", &Game::SetState<const State &>)
       .def("step", &Game::Step)
       .def("train", &Game::Train, py::arg("episodes") = 0);
 
   m.def("swap", py::overload_cast<Game &, Game &>(&swap));
 
-  py::class_<Exploration, PyExploration<>>(m, "Exploration")
-      .def("explore", &Exploration::Explore)
+  py::class_<Exploration, PyExploration<>, std::shared_ptr<Exploration>>(
+      m, "Exploration")
+      .def(py::init<>())
+      .def(py::init<const Exploration &>(), py::arg("exploration"))
+      .def("explore", &Exploration::Explore, py::arg("legal_actions"),
+           py::arg("greedy_actions"))
       .def("update", &Exploration::Update);
 
-  py::class_<EpsilonGreedy, Exploration, PyExploration<EpsilonGreedy>>(
-      m, "EpsilonGreedy")
+  py::class_<EpsilonGreedy,
+             Exploration,
+             PyExploration<EpsilonGreedy>,
+             std::shared_ptr<EpsilonGreedy>>(m, "EpsilonGreedy")
       .def(py::init<double, double, double>(),
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
-      .def("explore", &EpsilonGreedy::Explore)
+      .def("clone", &EpsilonGreedy::Clone)
+      .def("explore", &EpsilonGreedy::Explore, py::arg("legal_actions"),
+           py::arg("greedy_actions"))
       .def("get_epsilon", &EpsilonGreedy::GetEpsilon)
       .def("get_epsilon_decay_factor", &EpsilonGreedy::GetEpsilonDecayFactor)
       .def("get_min_epsilon", &EpsilonGreedy::GetMinEpsilon)
-      .def("set_epsilon", &EpsilonGreedy::SetEpsilon)
-      .def("set_epsilon_decay_factor", &EpsilonGreedy::SetEpsilonDecayFactor)
-      .def("set_min_epsilon", &EpsilonGreedy::SetMinEpsilon)
+      .def("set_epsilon", &EpsilonGreedy::SetEpsilon, py::arg("epsilon"))
+      .def("set_epsilon_decay_factor", &EpsilonGreedy::SetEpsilonDecayFactor,
+           py::arg("epsilon_decay_factor"))
+      .def("set_min_epsilon", &EpsilonGreedy::SetMinEpsilon,
+           py::arg("min_epsilon"))
       .def("update", &EpsilonGreedy::Update);
 
-  py::class_<Agent, PyAgent<>>(m, "Agent").def("initialize", &Agent::Initialize)
-      .def("reset", &Agent::Reset)
-      .def("step", &Agent::Step);
+  m.def("sample_action", &SampleAction, py::arg("actions"));
+  m.def("sample_state", &SampleState, py::arg("states"));
 
-  py::class_<HumanAgent, Agent, PyAgent<HumanAgent>>(m, "HumanAgent")
-      .def(py::init<>());
-
-  py::class_<OptimalAgent, Agent, PyAgent<OptimalAgent>>(m, "OptimalAgent")
+  py::class_<Agent, PyAgent<>, SmartPtr<Agent>>(m, "Agent")
       .def(py::init<>())
-      .def("policy", &OptimalAgent::Policy);
+      .def(py::init<const Agent &>(), py::arg("agent"))
+      .def("get_current_state", &Agent::GetCurrentState)
+      .def("initialize", &Agent::Initialize, py::arg("all_states"))
+      .def("reset", &Agent::Reset)
+      .def("set_current_state", &Agent::SetCurrentState, py::arg("state"))
+      .def("step", &Agent::Step, py::arg("game"), py::arg("is_evaluation"))
+      .def("update", &Agent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"))
+      .def_property("_current_state", &Agent::GetCurrentState,
+                    &Agent::SetCurrentState);
 
-  py::class_<RandomAgent, Agent, PyAgent<RandomAgent>>(m, "RandomAgent")
-      .def(py::init<>());
+  py::class_<HumanAgent,
+             Agent,
+             PyAgent<HumanAgent>,
+             SmartPtr<HumanAgent>>(m, "HumanAgent")
+      .def(py::init<>())
+      .def("clone", &HumanAgent::Clone)
+      .def("policy", &HumanAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"));
 
-  py::class_<RLAgent, Agent, PyRLAgent<>>(m, "RLAgent")
+  py::class_<OptimalAgent,
+             Agent,
+             PyAgent<OptimalAgent>,
+             SmartPtr<OptimalAgent>>(m, "OptimalAgent")
+      .def(py::init<>())
+      .def("clone", &OptimalAgent::Clone)
+      .def("policy", &OptimalAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"));
+
+  py::class_<RandomAgent,
+             Agent,
+             PyAgent<RandomAgent>,
+             SmartPtr<RandomAgent>>(m, "RandomAgent")
+      .def(py::init<>())
+      .def("clone", &RandomAgent::Clone)
+      .def("policy", &RandomAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"));
+
+  py::class_<RLAgent, Agent, PyRLAgent<>, SmartPtr<RLAgent>>(m, "RLAgent")
+      .def(py::init<>())
+      .def(py::init<const RLAgent &>(), py::arg("agent"))
+      .def("add_greedy_action", &RLAgent::AddGreedyAction, py::arg("action"))
+      .def("clear_greedy_actions", &RLAgent::ClearGreedyActions)
+      .def("get_greedy_actions", &RLAgent::GetGreedyActions)
+      .def("get_greedy_value", &RLAgent::GetGreedyValue)
+      .def("get_legal_actions", &RLAgent::GetLegalActions)
       .def("get_values", &RLAgent::GetValues)
-      .def("initialize", &RLAgent::Initialize)
+      .def("initialize", &RLAgent::Initialize, py::arg("all_states"))
       .def("optimal_action_ratios", &RLAgent::OptimalActionsRatio)
+      .def("policy", &RLAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"))
+      .def("policy_impl", &RLAgent::PolicyImpl, py::arg("legal_actions"),
+           py::arg("greedy_actions"))
       .def("reset", &RLAgent::Reset)
-      .def("set_values",
-           py::overload_cast<const Values &>(&RLAgent::SetValues));
+      .def("set_greedy_actions", &RLAgent::SetGreedyActions,
+           py::arg("greedy_actions"))
+      .def("set_greedy_value", &RLAgent::SetGreedyValue,
+           py::arg("greedy_value"))
+      .def("set_legal_actions", &RLAgent::SetLegalActions,
+           py::arg("legal_actions"))
+      .def("set_values", &RLAgent::SetValues, py::arg("values"))
+      .def("update_exploration", &RLAgent::UpdateExploration,
+           py::arg("episode"))
+      .def_property("_greedy_value", &RLAgent::GetGreedyValue,
+                    &RLAgent::SetGreedyValue)
+      .def_property("_legal_actions", &RLAgent::GetLegalActions,
+                    &RLAgent::SetLegalActions)
+      .def_property("_greedy_actions", &RLAgent::GetGreedyActions,
+                    &RLAgent::SetGreedyActions);
 
-  py::class_<DPAgent, RLAgent, PyRLAgent<DPAgent>>(m, "DPAgent")
+  py::class_<DPAgent,
+             RLAgent,
+             PyDPAgent<>,
+             SmartPtr<DPAgent>>(m, "DPAgent")
       .def(py::init<double, double>(),
            py::arg("gamma") = kDefaultGamma,
            py::arg("threshold") = kDefaultThreshold)
+      .def("clone", &DPAgent::Clone)
       .def("get_gamma", &DPAgent::GetGamma)
       .def("get_threshold", &DPAgent::GetThreshold)
       .def("get_transitions", &DPAgent::GetTransitions)
-      .def("initialize", &DPAgent::Initialize)
-      .def("set_gamma", &DPAgent::SetGamma)
-      .def("set_threshold", &DPAgent::SetThreshold)
-      .def("set_transitions",
-           &DPAgent::SetTransitions<const Transitions &>);
+      .def("initialize", &DPAgent::Initialize, py::arg("all_states"))
+      .def("policy_impl", &DPAgent::PolicyImpl, py::arg("legal_actions"),
+           py::arg("greedy_actions"))
+      .def("set_gamma", &DPAgent::SetGamma, py::arg("gamma"))
+      .def("set_threshold", &DPAgent::SetThreshold, py::arg("threshold"))
+      .def("set_transitions", &DPAgent::SetTransitions<const Transitions &>,
+           py::arg("transitions"));
 
-  py::class_<PolicyIterationAgent, DPAgent, PyRLAgent<PolicyIterationAgent>>(
-      m, "PolicyIterationAgent")
+  py::class_<PolicyIterationAgent,
+             DPAgent,
+             PyRLAgent<PolicyIterationAgent>,
+             SmartPtr<PolicyIterationAgent>>(m, "PolicyIterationAgent")
       .def(py::init<double, double>(),
            py::arg("gamma") = kDefaultGamma,
            py::arg("threshold") = kDefaultThreshold)
-      .def("initialize", &PolicyIterationAgent::Initialize);
+      .def("clone", &PolicyIterationAgent::Clone)
+      .def("policy", &PolicyIterationAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"))
+      .def("initialize", &PolicyIterationAgent::Initialize,
+           py::arg("all_states"));
 
-  py::class_<ValueIterationAgent, DPAgent, PyRLAgent<ValueIterationAgent>>(
-      m, "ValueIterationAgent")
+  py::class_<ValueIterationAgent,
+             DPAgent,
+             PyRLAgent<ValueIterationAgent>,
+             SmartPtr<ValueIterationAgent>>(m, "ValueIterationAgent")
       .def(py::init<double, double>(),
            py::arg("gamma") = kDefaultGamma,
            py::arg("threshold") = kDefaultThreshold)
-      .def("initialize", &ValueIterationAgent::Initialize);
+      .def("clone", &ValueIterationAgent::Clone)
+      .def("initialize", &ValueIterationAgent::Initialize,
+           py::arg("all_states"));
 
   py::enum_<ImportanceSampling>(m, "ImportanceSampling")
       .value("WEIGHTED", ImportanceSampling::kWeighted)
       .value("NORMAL", ImportanceSampling::kNormal);
 
-  py::class_<MonteCarloAgent, RLAgent, PyMonteCarloAgent<>>(m,
-                                                            "MonteCarloAgent")
+  py::class_<MonteCarloAgent,
+             RLAgent,
+             PyMonteCarloAgent<>,
+             SmartPtr<MonteCarloAgent>>(m, "MonteCarloAgent")
       .def(py::init<double>(), py::arg("gamma") = kDefaultGamma)
+      .def("clone", &MonteCarloAgent::Clone)
       .def("get_gamma", &MonteCarloAgent::GetGamma)
-      .def("initialize", &MonteCarloAgent::Initialize)
+      .def("initialize", &MonteCarloAgent::Initialize, py::arg("all_states"))
+      .def("policy_impl", &MonteCarloAgent::PolicyImpl,
+           py::arg("legal_actions"), py::arg("greedy_actions"))
       .def("reset", &MonteCarloAgent::Reset)
-      .def("set_gamma", &MonteCarloAgent::SetGamma)
-      .def("step", &MonteCarloAgent::Step);
+      .def("set_gamma", &MonteCarloAgent::SetGamma, py::arg("gamma"))
+      .def("step", &MonteCarloAgent::Step, py::arg("game"),
+           py::arg("is_evaluation"));
 
   py::class_<ESMonteCarloAgent,
              MonteCarloAgent,
-             PyMonteCarloAgent<ESMonteCarloAgent>>(m, "ESMonteCarloAgent")
+             PyMonteCarloAgent<ESMonteCarloAgent>,
+             SmartPtr<ESMonteCarloAgent>>(m, "ESMonteCarloAgent")
       .def(py::init<double>(), py::arg("gamma") = kDefaultGamma)
-      .def("step", &MonteCarloAgent::Step);
+      .def("clone", &ESMonteCarloAgent::Clone)
+      .def("step", &ESMonteCarloAgent::Step, py::arg("game"),
+           py::arg("is_evaluation"));
 
   py::class_<OnPolicyMonteCarloAgent,
              MonteCarloAgent,
-             PyMonteCarloAgent<OnPolicyMonteCarloAgent>>(
-      m, "OnPolicyMonteCarloAgent")
+             PyMonteCarloAgent<OnPolicyMonteCarloAgent>,
+             SmartPtr<OnPolicyMonteCarloAgent>>(m, "OnPolicyMonteCarloAgent")
       .def(py::init<double, const Exploration &>(),
            py::arg("gamma") = kDefaultGamma,
            py::arg("exploration") = EpsilonGreedy())
-      .def("update_exploration", &OnPolicyMonteCarloAgent::UpdateExploration);
+      .def("clone", &OnPolicyMonteCarloAgent::Clone)
+      .def("policy_impl", &OnPolicyMonteCarloAgent::PolicyImpl,
+           py::arg("legal_actions"), py::arg("greedy_actions"))
+      .def("update_exploration", &OnPolicyMonteCarloAgent::UpdateExploration,
+           py::arg("episode"));
 
   py::class_<OffPolicyMonteCarloAgent,
              MonteCarloAgent,
-             PyMonteCarloAgent<OffPolicyMonteCarloAgent>>(
-      m, "OffPolicyMonteCarloAgent")
+             PyMonteCarloAgent<OffPolicyMonteCarloAgent>,
+             SmartPtr<OffPolicyMonteCarloAgent>>(m, "OffPolicyMonteCarloAgent")
       .def(py::init<double, ImportanceSampling, double, double, double>(),
            py::arg("gamma") = kDefaultGamma,
            py::arg("importance_sampling") = ImportanceSampling::kWeighted,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
-      .def("update_exploration", &OffPolicyMonteCarloAgent::UpdateExploration);
+      .def("clone", &OffPolicyMonteCarloAgent::Clone)
+      .def("policy_impl", &OffPolicyMonteCarloAgent::PolicyImpl,
+           py::arg("legal_actions"), py::arg("greedy_actions"))
+      .def("update", &OffPolicyMonteCarloAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"))
+      .def("update_exploration", &OffPolicyMonteCarloAgent::UpdateExploration,
+           py::arg("episode"));
 
-  py::class_<TDAgent, RLAgent, PyTDAgent<>>(m, "TDAgent")
+  py::class_<TDAgent, RLAgent, PyTDAgent<>, SmartPtr<TDAgent>>(m, "TDAgent")
       .def(py::init<double, double, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &TDAgent::Clone)
       .def("get_alpha", &TDAgent::GetAlpha)
       .def("get_gamma", &TDAgent::GetGamma)
-      .def("set_alpha", &TDAgent::SetAlpha)
-      .def("set_gamma", &TDAgent::SetGamma)
-      .def("step", &TDAgent::Step)
-      .def("update_exploration", &TDAgent::UpdateExploration);
+      .def("policy_impl", &TDAgent::PolicyImpl, py::arg("legal_actions"),
+           py::arg("greedy_actions"))
+      .def("set_alpha", &TDAgent::SetAlpha, py::arg("alpha"))
+      .def("set_gamma", &TDAgent::SetGamma, py::arg("gamma"))
+      .def("step", &TDAgent::Step, py::arg("game"), py::arg("is_evaluation"))
+      .def("update_exploration", &TDAgent::UpdateExploration,
+           py::arg("episode"));
 
-  py::class_<QLearningAgent, TDAgent, PyTDAgent<QLearningAgent>>(
-      m, "QLearningAgent")
-      .def(py::init<double, double, double, double, double>(),
-           py::arg("alpha") = kDefaultAlpha,
-           py::arg("gamma") = kDefaultGamma,
-           py::arg("epsilon") = kDefaultEpsilon,
-           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
-
-  py::class_<SarsaAgent, TDAgent, PyTDAgent<SarsaAgent>>(m, "SarsaAgent")
-      .def(py::init<double, double, double, double, double>(),
-           py::arg("alpha") = kDefaultAlpha,
-           py::arg("gamma") = kDefaultGamma,
-           py::arg("epsilon") = kDefaultEpsilon,
-           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
-
-  py::class_<ExpectedSarsaAgent, TDAgent, PyTDAgent<ExpectedSarsaAgent>>(
-      m, "ExpectedSarsaAgent")
+  py::class_<QLearningAgent,
+             TDAgent,
+             PyTDAgent<QLearningAgent>,
+             SmartPtr<QLearningAgent>>(m, "QLearningAgent")
       .def(py::init<double, double, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
-      .def("reset", &ExpectedSarsaAgent::Reset);
+      .def("clone", &QLearningAgent::Clone)
+      .def("update", &QLearningAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
 
-  py::class_<DoubleLearningAgent, TDAgent, PyDoubleLearningAgent<>>(
-      m, "DoubleLearningAgent")
+  py::class_<SarsaAgent,
+             TDAgent,
+             PyTDAgent<SarsaAgent>,
+             SmartPtr<SarsaAgent>>(m, "SarsaAgent")
+      .def(py::init<double, double, double, double, double>(),
+           py::arg("alpha") = kDefaultAlpha,
+           py::arg("gamma") = kDefaultGamma,
+           py::arg("epsilon") = kDefaultEpsilon,
+           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &SarsaAgent::Clone)
+      .def("update", &SarsaAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
+
+  py::class_<ExpectedSarsaAgent,
+             TDAgent,
+             PyTDAgent<ExpectedSarsaAgent>,
+             SmartPtr<ExpectedSarsaAgent>>(m, "ExpectedSarsaAgent")
+      .def(py::init<double, double, double, double, double>(),
+           py::arg("alpha") = kDefaultAlpha,
+           py::arg("gamma") = kDefaultGamma,
+           py::arg("epsilon") = kDefaultEpsilon,
+           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &ExpectedSarsaAgent::Clone)
+      .def("policy", &ExpectedSarsaAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"))
+      .def("reset", &ExpectedSarsaAgent::Reset)
+      .def("update", &ExpectedSarsaAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
+
+  py::class_<DoubleLearningAgent,
+             TDAgent,
+             PyDoubleLearningAgent<>,
+             SmartPtr<DoubleLearningAgent>>(m, "DoubleLearningAgent")
+      .def(py::init<double, double, double, double, double>(),
+           py::arg("alpha") = kDefaultAlpha,
+           py::arg("gamma") = kDefaultGamma,
+           py::arg("epsilon") = kDefaultEpsilon,
+           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
       .def("get_values", &DoubleLearningAgent::GetValues)
-      .def("initialize", &DoubleLearningAgent::Initialize)
+      .def("initialize", &DoubleLearningAgent::Initialize,
+           py::arg("all_states"))
+      .def("policy", &DoubleLearningAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"))
       .def("reset", &DoubleLearningAgent::Reset)
-      .def("set_values",
-           py::overload_cast<const Values &>(&DoubleLearningAgent::SetValues));
+      .def("set_values", &DoubleLearningAgent::SetValues, py::arg("values"))
+      .def("update", &DoubleLearningAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
 
   py::class_<DoubleQLearningAgent,
              DoubleLearningAgent,
-             PyDoubleLearningAgent<DoubleQLearningAgent>>(
-      m, "DoubleQLearningAgent")
+             PyDoubleLearningAgent<DoubleQLearningAgent>,
+             SmartPtr<DoubleQLearningAgent>>(m, "DoubleQLearningAgent")
       .def(py::init<double, double, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &DoubleQLearningAgent::Clone)
+      .def("do_update", &DoubleQLearningAgent::DoUpdate,
+           py::arg("update_state"), py::arg("current_state"), py::arg("reward"),
+           py::arg("values"));
 
   py::class_<DoubleSarsaAgent,
              DoubleLearningAgent,
-             PyDoubleLearningAgent<DoubleSarsaAgent>>(
-      m, "DoubleSarsaAgent")
+             PyDoubleLearningAgent<DoubleSarsaAgent>,
+             SmartPtr<DoubleSarsaAgent>>(m, "DoubleSarsaAgent")
       .def(py::init<double, double, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &DoubleSarsaAgent::Clone)
+      .def("do_update", &DoubleSarsaAgent::DoUpdate, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"), py::arg("values"));
 
   py::class_<DoubleExpectedSarsaAgent,
              DoubleLearningAgent,
-             PyDoubleLearningAgent<DoubleExpectedSarsaAgent>>(
-      m, "DoubleExpectedSarsaAgent")
+             PyDoubleLearningAgent<DoubleExpectedSarsaAgent>,
+             SmartPtr<DoubleExpectedSarsaAgent>>(m, "DoubleExpectedSarsaAgent")
       .def(py::init<double, double, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &DoubleExpectedSarsaAgent::Clone)
+      .def("do_update", &DoubleExpectedSarsaAgent::DoUpdate,
+           py::arg("update_state"), py::arg("current_state"), py::arg("reward"),
+           py::arg("values"))
+      .def("policy", &DoubleExpectedSarsaAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"))
       .def("reset", &DoubleExpectedSarsaAgent::Reset);
 
-  py::class_<NStepBootstrappingAgent, TDAgent, PyNStepBootstrappingAgent<>>(
-      m, "NStepBootstrappingAgent")
-      .def("get_n", &NStepBootstrappingAgent::GetN)
-      .def("reset", &NStepBootstrappingAgent::Reset)
-      .def("set_n", &NStepBootstrappingAgent::SetN)
-      .def("step", &NStepBootstrappingAgent::Step);
-
-  py::class_<NStepSarsaAgent,
-             NStepBootstrappingAgent,
-             PyNStepBootstrappingAgent<NStepSarsaAgent>>(
-      m, "NStepSarsaAgent")
-      .def(py::init<double, double, int, double, double, double>(),
-           py::arg("alpha") = kDefaultAlpha,
-           py::arg("gamma") = kDefaultGamma,
-           py::arg("n") = kDefaultN,
-           py::arg("epsilon") = kDefaultEpsilon,
-           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
-
-  py::class_<NStepExpectedSarsaAgent,
-             NStepBootstrappingAgent,
-             PyNStepBootstrappingAgent<NStepExpectedSarsaAgent>>(
-      m, "NStepExpectedSarsaAgent")
+  py::class_<NStepBootstrappingAgent,
+             TDAgent,
+             PyNStepBootstrappingAgent<>,
+             SmartPtr<NStepBootstrappingAgent>>(m, "NStepBootstrappingAgent")
       .def(py::init<double, double, int, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
@@ -445,23 +617,65 @@ PYBIND11_MODULE(pynim, m) {
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
-      .def("reset", &NStepExpectedSarsaAgent::Reset);
+      .def("clone", &NStepBootstrappingAgent::Clone)
+      .def("get_n", &NStepBootstrappingAgent::GetN)
+      .def("reset", &NStepBootstrappingAgent::Reset)
+      .def("set_n", &NStepBootstrappingAgent::SetN, py::arg("n"))
+      .def("step", &NStepBootstrappingAgent::Step, py::arg("game"),
+           py::arg("is_evaluation"));
 
-  py::class_<OffPolicyNStepSarsaAgent,
+  py::class_<NStepSarsaAgent,
              NStepBootstrappingAgent,
-             PyNStepBootstrappingAgent<OffPolicyNStepSarsaAgent>>(
-      m, "OffPolicyNStepSarsaAgent")
+             PyNStepBootstrappingAgent<NStepSarsaAgent>,
+             SmartPtr<NStepSarsaAgent>>(m, "NStepSarsaAgent")
       .def(py::init<double, double, int, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("n") = kDefaultN,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &NStepSarsaAgent::Clone)
+      .def("update", &NStepSarsaAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
+
+  py::class_<NStepExpectedSarsaAgent,
+             NStepBootstrappingAgent,
+             PyNStepBootstrappingAgent<NStepExpectedSarsaAgent>,
+             SmartPtr<NStepExpectedSarsaAgent>>(m, "NStepExpectedSarsaAgent")
+      .def(py::init<double, double, int, double, double, double>(),
+           py::arg("alpha") = kDefaultAlpha,
+           py::arg("gamma") = kDefaultGamma,
+           py::arg("n") = kDefaultN,
+           py::arg("epsilon") = kDefaultEpsilon,
+           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &NStepExpectedSarsaAgent::Clone)
+      .def("policy", &NStepExpectedSarsaAgent::Policy, py::arg("state"),
+           py::arg("is_evaluation"))
+      .def("reset", &NStepExpectedSarsaAgent::Reset)
+      .def("update", &NStepExpectedSarsaAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
+
+  py::class_<OffPolicyNStepSarsaAgent,
+             NStepBootstrappingAgent,
+             PyNStepBootstrappingAgent<OffPolicyNStepSarsaAgent>,
+             SmartPtr<OffPolicyNStepSarsaAgent>>(m, "OffPolicyNStepSarsaAgent")
+      .def(py::init<double, double, int, double, double, double>(),
+           py::arg("alpha") = kDefaultAlpha,
+           py::arg("gamma") = kDefaultGamma,
+           py::arg("n") = kDefaultN,
+           py::arg("epsilon") = kDefaultEpsilon,
+           py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &OffPolicyNStepSarsaAgent::Clone)
+      .def("update", &OffPolicyNStepSarsaAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
 
   py::class_<OffPolicyNStepExpectedSarsaAgent,
              NStepBootstrappingAgent,
-             PyNStepBootstrappingAgent<OffPolicyNStepExpectedSarsaAgent>>(
+             PyNStepBootstrappingAgent<OffPolicyNStepExpectedSarsaAgent>,
+             SmartPtr<OffPolicyNStepExpectedSarsaAgent>>(
       m, "OffPolicyNStepExpectedSarsaAgent")
       .def(py::init<double, double, int, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
@@ -470,19 +684,28 @@ PYBIND11_MODULE(pynim, m) {
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
            py::arg("min_epsilon") = kDefaultMinEpsilon)
-      .def("reset", &OffPolicyNStepExpectedSarsaAgent::Reset);
+      .def("clone", &OffPolicyNStepExpectedSarsaAgent::Clone)
+      .def("policy", &OffPolicyNStepExpectedSarsaAgent::Policy,
+           py::arg("state"), py::arg("is_evaluation"))
+      .def("reset", &OffPolicyNStepExpectedSarsaAgent::Reset)
+      .def("update", &OffPolicyNStepExpectedSarsaAgent::Update,
+           py::arg("update_state"), py::arg("current_state"),
+           py::arg("reward"));
 
   py::class_<NStepTreeBackupAgent,
              NStepBootstrappingAgent,
-             PyNStepBootstrappingAgent<NStepTreeBackupAgent>>(
-      m, "NStepTreeBackupAgent")
+             PyNStepBootstrappingAgent<NStepTreeBackupAgent>,
+             SmartPtr<NStepTreeBackupAgent>>(m, "NStepTreeBackupAgent")
       .def(py::init<double, double, int, double, double, double>(),
            py::arg("alpha") = kDefaultAlpha,
            py::arg("gamma") = kDefaultGamma,
            py::arg("n") = kDefaultN,
            py::arg("epsilon") = kDefaultEpsilon,
            py::arg("epsilon_decay_factor") = kDefaultEpsilonDecayFactor,
-           py::arg("min_epsilon") = kDefaultMinEpsilon);
+           py::arg("min_epsilon") = kDefaultMinEpsilon)
+      .def("clone", &NStepTreeBackupAgent::Clone)
+      .def("update", &NStepTreeBackupAgent::Update, py::arg("update_state"),
+           py::arg("current_state"), py::arg("reward"));
 }
 
 }  // namespace

@@ -22,12 +22,13 @@ if __name__ == '__main__':
     policy_iteration_agent = PolicyIterationAgent()
     value_iteration_agent = ValueIterationAgent()
     es_mc_agent = ESMonteCarloAgent()
-    on_policy_mc_agent = OnPolicyMonteCarloAgent()
+    on_policy_mc_agent = OnPolicyMonteCarloAgent(1.0,
+                                                 EpsilonGreedy(0.1, 1.0, 0.1))
     normal_off_policy_mc_agent = \
-        OffPolicyMonteCarloAgent(1.0, ImportanceSampling.NORMAL, 0.1, 1.0, 0.01)
+        OffPolicyMonteCarloAgent(1.0, ImportanceSampling.NORMAL, 0.1, 1.0, 0.1)
     weighted_off_policy_mc_agent = \
         OffPolicyMonteCarloAgent(1.0, ImportanceSampling.WEIGHTED, 0.1, 1.0,
-                                 0.01)
+                                 0.1)
     ql_agent = QLearningAgent()
     sarsa_agent = SarsaAgent()
     expected_sarsa_agent = ExpectedSarsaAgent()
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     print("Testing Off-policy Monte Carlo with Weighted Sampling...")
     game.set_first_player(weighted_off_policy_mc_agent)
     game.set_second_player(weighted_off_policy_mc_agent)
-    game.train(100000)
+    game.train(50000)
     game.print_values()
     game.set_second_player(optimal_agent)
     game.play(10000)

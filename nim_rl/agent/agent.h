@@ -54,8 +54,7 @@ State SampleState(const std::vector<State> &);
 
 class Game;
 
-class Agent {
-  friend void swap(Game &, Game &);
+class Agent : public std::enable_shared_from_this<Agent> {
   friend class Game;
 
  public:
@@ -68,17 +67,18 @@ class Agent {
   Agent &operator=(const Agent &) = default;
   Agent &operator=(Agent &&) noexcept;
   virtual ~Agent() = default;
-  virtual std::shared_ptr<Agent> Clone() const & = 0;
-  virtual std::shared_ptr<Agent> Clone() && = 0;
+  virtual std::shared_ptr<Agent> Clone() const = 0;
+  State GetCurrentState() const { return current_state_; }
   virtual void Initialize(const std::vector<State> &) {}
+  virtual Action Policy(const State &, bool is_evaluation) = 0;
   virtual void Reset() { current_state_ = State(); }
+  void SetCurrentState(const State &state) { current_state_ = state; }
   virtual Action Step(Game *, bool is_evaluation);
+  virtual void Update(const State &update_state, const State &current_state,
+                      Reward reward) { current_state_ = current_state; }
 
  protected:
   State current_state_;
-  virtual Action Policy(const State &, bool is_evaluation) = 0;
-  virtual void Update(const State &update_state, const State &current_state,
-                      Reward reward) { current_state_ = current_state; }
 };
 
 }  // namespace nim_rl

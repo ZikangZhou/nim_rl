@@ -35,27 +35,26 @@ class TDAgent : public RLAgent {
   TDAgent &operator=(const TDAgent &) = default;
   TDAgent &operator=(TDAgent &&) = default;
   ~TDAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
-    return std::shared_ptr<TDAgent>(new TDAgent(*this));
-  }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new TDAgent(std::move(*this)));
+  std::shared_ptr<Agent> Clone() const override {
+    return std::shared_ptr<Agent>(new TDAgent(*this));
   }
   double GetAlpha() const { return alpha_; }
   double GetGamma() const { return gamma_; }
+  Action PolicyImpl(const std::vector<Action> &legal_actions,
+                    const std::vector<Action> &greedy_actions) override {
+    return epsilon_greedy_.Explore(legal_actions, greedy_actions);
+  }
   void SetAlpha(double alpha) { alpha_ = alpha; }
   void SetGamma(double gamma) { gamma_ = gamma; }
   Action Step(Game *, bool is_evaluation) override;
-  void UpdateExploration() override { epsilon_greedy_.Update(); }
+  void UpdateExploration(int episode) override {
+    epsilon_greedy_.Update(episode);
+  }
 
  protected:
   double alpha_;
   double gamma_;
   EpsilonGreedy epsilon_greedy_;
-  Action PolicyImpl(const std::vector<Action> &legal_actions,
-                    const std::vector<Action> &greedy_actions) override {
-    return epsilon_greedy_.Explore(legal_actions, greedy_actions);
-  }
 };
 
 class QLearningAgent : public TDAgent {
@@ -72,14 +71,9 @@ class QLearningAgent : public TDAgent {
   QLearningAgent &operator=(const QLearningAgent &) = default;
   QLearningAgent &operator=(QLearningAgent &&) = default;
   ~QLearningAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new QLearningAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new QLearningAgent(std::move(*this)));
-  }
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };
@@ -97,14 +91,9 @@ class SarsaAgent : public TDAgent {
   SarsaAgent &operator=(const SarsaAgent &) = default;
   SarsaAgent &operator=(SarsaAgent &&) = default;
   ~SarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new SarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new SarsaAgent(std::move(*this)));
-  }
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };
@@ -123,21 +112,16 @@ class ExpectedSarsaAgent : public TDAgent {
   ExpectedSarsaAgent &operator=(const ExpectedSarsaAgent &) = default;
   ExpectedSarsaAgent &operator=(ExpectedSarsaAgent &&) = default;
   ~ExpectedSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new ExpectedSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new ExpectedSarsaAgent(std::move(*this)));
-  }
+  Action Policy(const State &, bool is_evaluation) override;
   void Reset() override;
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 
  private:
   std::vector<State> next_states_;
-  Action Policy(const State &, bool is_evaluation) override;
   template<typename T>
   void SetNextStates(T &&next_states) {
     next_states_ = std::forward<T>(next_states);
@@ -158,25 +142,21 @@ class DoubleLearningAgent : public TDAgent {
   DoubleLearningAgent &operator=(const DoubleLearningAgent &) = default;
   DoubleLearningAgent &operator=(DoubleLearningAgent &&) = default;
   ~DoubleLearningAgent() override = default;
-  std::unordered_map<State, Reward> GetValues() const override;
-  void Initialize(const std::vector<State> &) override;
-  void Reset() override;
-  void SetValues(const std::unordered_map<State, Reward> &values) override {
-    values_ = values_2_ = values;
-  }
-  void SetValues(std::unordered_map<State, Reward> &&values) override {
-    values_ = values_2_ = std::move(values);
-  }
-
- protected:
-  std::unordered_map<State, Reward> values_2_;
-  bool flag_ = false;
   virtual void DoUpdate(const State &update_state, const State &current_state,
-                        Reward reward,
-                        std::unordered_map<State, Reward> *values) = 0;
+                        Reward reward, Values *values) = 0;
+  Values GetValues() const override;
+  void Initialize(const std::vector<State> &) override;
   Action Policy(const State &, bool is_evaluation) override;
+  void Reset() override;
+  void SetValues(const Values &values) override {
+    *values_ = *values_2_ = values;
+  }
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
+
+ protected:
+  std::shared_ptr<Values> values_2_ = std::shared_ptr<Values>(new Values());
+  bool flag_ = false;
 
  private:
   std::bernoulli_distribution dist_flag_{};
@@ -198,18 +178,12 @@ class DoubleQLearningAgent : public DoubleLearningAgent {
   DoubleQLearningAgent &operator=(const DoubleQLearningAgent &) = default;
   DoubleQLearningAgent &operator=(DoubleQLearningAgent &&) = default;
   ~DoubleQLearningAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new DoubleQLearningAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new DoubleQLearningAgent(std::move(*this)));
-  }
-
- private:
-  void DoUpdate(const State &update_state,
-                const State &current_state,
-                Reward reward,
-                std::unordered_map<State, Reward> *values) override;
+  void DoUpdate(const State &update_state, const State &current_state,
+                Reward reward, Values *values) override;
+  Action Policy(const State &, bool is_evaluation) override;
 };
 
 class DoubleSarsaAgent : public DoubleLearningAgent {
@@ -227,18 +201,11 @@ class DoubleSarsaAgent : public DoubleLearningAgent {
   DoubleSarsaAgent &operator=(const DoubleSarsaAgent &) = default;
   DoubleSarsaAgent &operator=(DoubleSarsaAgent &&) = default;
   ~DoubleSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new DoubleSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new DoubleSarsaAgent(std::move(*this)));
-  }
-
- private:
-  void DoUpdate(const State &update_state,
-                const State &current_state,
-                Reward reward,
-                std::unordered_map<State, Reward> *values) override;
+  void DoUpdate(const State &update_state, const State &current_state,
+                Reward reward, Values *values) override;
 };
 
 class DoubleExpectedSarsaAgent : public DoubleLearningAgent {
@@ -257,22 +224,16 @@ class DoubleExpectedSarsaAgent : public DoubleLearningAgent {
   operator=(const DoubleExpectedSarsaAgent &) = default;
   DoubleExpectedSarsaAgent &operator=(DoubleExpectedSarsaAgent &&) = default;
   ~DoubleExpectedSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new DoubleExpectedSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(
-        new DoubleExpectedSarsaAgent(std::move(*this)));
-  }
+  void DoUpdate(const State &update_state, const State &current_state,
+                Reward reward, Values *values) override;
+  Action Policy(const State &, bool is_evaluation) override;
   void Reset() override;
 
  private:
   std::vector<State> next_states_;
-  void DoUpdate(const State &update_state,
-                const State &current_state,
-                Reward reward,
-                std::unordered_map<State, Reward> *values) override;
-  Action Policy(const State &, bool is_evaluation) override;
   template<typename T>
   void SetNextStates(T &&next_states) {
     next_states_ = std::forward<T>(next_states);

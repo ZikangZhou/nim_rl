@@ -27,14 +27,9 @@ class RandomAgent : public Agent {
   RandomAgent &operator=(const RandomAgent &) = default;
   RandomAgent &operator=(RandomAgent &&) = default;
   ~RandomAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new RandomAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new RandomAgent(std::move(*this)));
-  }
-
- private:
   Action Policy(const State &, bool is_evaluation) override;
 };
 

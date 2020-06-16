@@ -37,6 +37,9 @@ class NStepBootstrappingAgent : public TDAgent {
   NStepBootstrappingAgent &operator=(const NStepBootstrappingAgent &) = default;
   NStepBootstrappingAgent &operator=(NStepBootstrappingAgent &&) = default;
   ~NStepBootstrappingAgent() override = default;
+  std::shared_ptr<Agent> Clone() const override {
+    return std::shared_ptr<Agent>(new NStepBootstrappingAgent(*this));
+  }
   int GetN() const { return n_; }
   void Reset() override;
   void SetN(int n) { n_ = n; }
@@ -66,14 +69,9 @@ class NStepSarsaAgent : public NStepBootstrappingAgent {
   NStepSarsaAgent &operator=(const NStepSarsaAgent &) = default;
   NStepSarsaAgent &operator=(NStepSarsaAgent &&) = default;
   ~NStepSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new NStepSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new NStepSarsaAgent(std::move(*this)));
-  }
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };
@@ -94,22 +92,16 @@ class NStepExpectedSarsaAgent : public NStepBootstrappingAgent {
   NStepExpectedSarsaAgent &operator=(const NStepExpectedSarsaAgent &) = default;
   NStepExpectedSarsaAgent &operator=(NStepExpectedSarsaAgent &&) = default;
   ~NStepExpectedSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new NStepExpectedSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(
-        new NStepExpectedSarsaAgent(std::move(*this)));
-  }
+  Action Policy(const State &, bool is_evaluation) override;
   void Reset() override;
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 
  private:
   std::vector<State> next_states_;
-  Action Policy(const State &, bool is_evaluation) override;
   template<typename T>
   void SetNextStates(T &&next_states) {
     next_states_ = std::forward<T>(next_states);
@@ -133,15 +125,9 @@ class OffPolicyNStepSarsaAgent : public NStepBootstrappingAgent {
   operator=(const OffPolicyNStepSarsaAgent &) = default;
   OffPolicyNStepSarsaAgent &operator=(OffPolicyNStepSarsaAgent &&) = default;
   ~OffPolicyNStepSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new OffPolicyNStepSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(
-        new OffPolicyNStepSarsaAgent(std::move(*this)));
-  }
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };
@@ -166,22 +152,16 @@ class OffPolicyNStepExpectedSarsaAgent : public NStepBootstrappingAgent {
   OffPolicyNStepExpectedSarsaAgent &
   operator=(OffPolicyNStepExpectedSarsaAgent &&) = default;
   ~OffPolicyNStepExpectedSarsaAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new OffPolicyNStepExpectedSarsaAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(
-        new OffPolicyNStepExpectedSarsaAgent(std::move(*this)));
-  }
+  Action Policy(const State &, bool is_evaluation) override;
   void Reset() override;
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 
  private:
   std::vector<State> next_states_;
-  Action Policy(const State &, bool is_evaluation) override;
   template<typename T>
   void SetNextStates(T &&next_states) {
     next_states_ = std::forward<T>(next_states);
@@ -204,14 +184,9 @@ class NStepTreeBackupAgent : public NStepBootstrappingAgent {
   NStepTreeBackupAgent &operator=(const NStepTreeBackupAgent &) = default;
   NStepTreeBackupAgent &operator=(NStepTreeBackupAgent &&) = default;
   ~NStepTreeBackupAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new NStepTreeBackupAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new NStepTreeBackupAgent(std::move(*this)));
-  }
-
- protected:
   void Update(const State &update_state, const State &current_state,
               Reward reward) override;
 };

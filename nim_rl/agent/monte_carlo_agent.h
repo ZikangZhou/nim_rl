@@ -34,30 +34,25 @@ class MonteCarloAgent : public RLAgent {
   MonteCarloAgent &operator=(const MonteCarloAgent &) = default;
   MonteCarloAgent &operator=(MonteCarloAgent &&) = default;
   ~MonteCarloAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new MonteCarloAgent(*this));
-  }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new MonteCarloAgent(std::move(*this)));
   }
   double GetGamma() const { return gamma_; }
   void Initialize(const std::vector<State> &) override;
+  Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
+                    const std::vector<Action> &greedy_actions) override {
+    return SampleAction(greedy_actions);
+  }
   void Reset() override;
   void SetGamma(double gamma) { gamma_ = gamma; }
   Action Step(Game *, bool is_evaluation) override;
+  void Update(const State &update_state, const State &current_state,
+              Reward reward) override;
 
  protected:
   double gamma_;
   std::vector<TimeStep> trajectory_;
   std::unordered_map<State, double> cumulative_sums_;
-  void Update(const State &update_state, const State &current_state,
-              Reward reward) override;
-
- private:
-  Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
-                    const std::vector<Action> &greedy_actions) override {
-    return SampleAction(greedy_actions);
-  }
 };
 
 class ESMonteCarloAgent : public MonteCarloAgent {
@@ -69,11 +64,8 @@ class ESMonteCarloAgent : public MonteCarloAgent {
   ESMonteCarloAgent &operator=(const ESMonteCarloAgent &) = default;
   ESMonteCarloAgent &operator=(ESMonteCarloAgent &&) = default;
   ~ESMonteCarloAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new ESMonteCarloAgent(*this));
-  }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new ESMonteCarloAgent(std::move(*this)));
   }
   Action Step(Game *, bool is_evaluation) override;
 };
@@ -89,21 +81,19 @@ class OnPolicyMonteCarloAgent : public MonteCarloAgent {
   OnPolicyMonteCarloAgent &operator=(const OnPolicyMonteCarloAgent &) = default;
   OnPolicyMonteCarloAgent &operator=(OnPolicyMonteCarloAgent &&) = default;
   ~OnPolicyMonteCarloAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new OnPolicyMonteCarloAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(
-        new OnPolicyMonteCarloAgent(std::move(*this)));
-  }
-  void UpdateExploration() override { exploration_->Update(); }
-
- private:
-  std::shared_ptr<Exploration> exploration_;
   Action PolicyImpl(const std::vector<Action> &legal_actions,
                     const std::vector<Action> &greedy_actions) override {
     return exploration_->Explore(legal_actions, greedy_actions);
   }
+  void UpdateExploration(int episode) override {
+    exploration_->Update(episode);
+  }
+
+ private:
+  std::shared_ptr<Exploration> exploration_;
 };
 
 class OffPolicyMonteCarloAgent : public MonteCarloAgent {
@@ -123,26 +113,22 @@ class OffPolicyMonteCarloAgent : public MonteCarloAgent {
   operator=(const OffPolicyMonteCarloAgent &) = default;
   OffPolicyMonteCarloAgent &operator=(OffPolicyMonteCarloAgent &&) = default;
   ~OffPolicyMonteCarloAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new OffPolicyMonteCarloAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(
-        new OffPolicyMonteCarloAgent(std::move(*this)));
-  }
-  void UpdateExploration() override { epsilon_greedy_.Update(); }
-
- protected:
-  void Update(const State &update_state, const State &current_state,
-              Reward reward) override;
-
- private:
-  ImportanceSampling importance_sampling_;
-  EpsilonGreedy epsilon_greedy_;
   Action PolicyImpl(const std::vector<Action> &legal_actions,
                     const std::vector<Action> &greedy_actions) override {
     return epsilon_greedy_.Explore(legal_actions, greedy_actions);
   }
+  void Update(const State &update_state, const State &current_state,
+              Reward reward) override;
+  void UpdateExploration(int episode) override {
+    epsilon_greedy_.Update(episode);
+  }
+
+ private:
+  ImportanceSampling importance_sampling_;
+  EpsilonGreedy epsilon_greedy_;
 };
 
 }  // namespace nim_rl

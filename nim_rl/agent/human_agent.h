@@ -27,14 +27,9 @@ class HumanAgent : public Agent {
   HumanAgent &operator=(const HumanAgent &) = default;
   HumanAgent &operator=(HumanAgent &&) = default;
   ~HumanAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new HumanAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new HumanAgent(std::move(*this)));
-  }
-
- private:
   Action Policy(const State &, bool is_evaluation) override;
 };
 

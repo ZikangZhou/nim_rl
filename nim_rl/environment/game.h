@@ -29,7 +29,7 @@
 
 namespace nim_rl {
 
-constexpr int kCheckPoint = 1000;
+constexpr int kCheckPoint = 100;
 constexpr double kWinReward = 1.0;
 constexpr double kTieReward = 0.0;
 constexpr double kLoseReward = -1.0;
@@ -71,23 +71,21 @@ class Game {
   void PrintValues() const;
   void Render() const { std::cout << "Current state: " << state_ << std::endl; }
   void Reset();
-  template<typename T>
-  void SetFirstPlayer(T &&first_player) {
-    first_player_ = std::forward<T>(first_player).Clone();
+  void SetFirstPlayer(const Agent &first_player) {
+    first_player_ = first_player.Clone();
   }
   template<typename T>
   void SetInitialState(T &&init_state) {
     initial_state_ = std::forward<T>(init_state);
   }
   void SetReward(Reward reward) { reward_ = reward; }
-  template<typename T>
-  void SetSecondPlayer(T &&second_player) {
-    second_player_ = std::forward<T>(second_player).Clone();
+  void SetSecondPlayer(const Agent &second_player) {
+    second_player_ = second_player.Clone();
   }
   template<typename T>
   void SetState(T &&state) { state_ = std::forward<T>(state); }
   void Step(const Action &);
-  void Train(int episodes = 0);
+  std::pair<std::vector<double>, std::vector<double>> Train(int episodes = 0);
 
  private:
   State initial_state_;

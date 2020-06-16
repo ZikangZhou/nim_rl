@@ -52,10 +52,15 @@ void Game::Play(int episodes) {
   bool play_with_human = typeid(*first_player_) == typeid(HumanAgent) ||
       typeid(*second_player_) == typeid(HumanAgent);
   Reset();
+  int cnt = 0;
+  double average_episode_size_1 = 0.0, average_episode_size_2 = 0.0;
   for (int i = 0; i < episodes; ++i) {
+    ++cnt;
+    int episode_size_1 = 0, episode_size_2 = 0;
     if (play_with_human) std::cout << "Game started." << std::endl;
     while (true) {
       if (play_with_human) Render();
+      ++episode_size_1;
       action = first_player_->Step(this, true);
       if (play_with_human) {
         std::cout << "Player 1 takes action: " << action << std::endl;
@@ -74,6 +79,7 @@ void Game::Play(int episodes) {
         }
         break;
       }
+      ++episode_size_2;
       action = second_player_->Step(this, true);
       if (play_with_human)
         std::cout << "Player 2 takes action: " << action << std::endl;
@@ -86,8 +92,12 @@ void Game::Play(int episodes) {
         break;
       }
     }
+    average_episode_size_1 += (episode_size_1 - average_episode_size_1) / cnt;
+    average_episode_size_2 += (episode_size_2 - average_episode_size_2) / cnt;
     Reset();
   }
+  std::cout << "average episode size: " << average_episode_size_1 << " "
+            << average_episode_size_2 << std::endl;
   std::cout << std::fixed << std::setprecision(kPrecision)
             << "player 1 winning percentage: " << win_first_player / episodes
             << ", player 2 winning percentage: " << win_second_player / episodes
@@ -96,10 +106,12 @@ void Game::Play(int episodes) {
 
 void Game::PrintValues() const {
   if (auto first_player = dynamic_cast<RLAgent *>(first_player_.get())) {
-    std::cout << "player 1 values: " << first_player->GetValues() << std::endl;
+    std::cout << "player 1 values: " << first_player->GetValues()
+              << std::endl;
   }
   if (auto second_player = dynamic_cast<RLAgent *>(second_player_.get())) {
-    std::cout << "player 2 values: " << second_player->GetValues() << std::endl;
+    std::cout << "player 2 values: " << second_player->GetValues()
+              << std::endl;
   }
 }
 
@@ -123,14 +135,21 @@ void Game::Step(const Action &action) {
   }
 }
 
-void Game::Train(int episodes) {
+std::pair<std::vector<double>, std::vector<double>> Game::Train(int episodes) {
   if (episodes < 0) throw std::invalid_argument("Episodes must >= 0");
   if (!first_player_ || !second_player_)
     throw std::runtime_error("Agent should not be nullptr");
   if (state_.IsEmpty()) throw std::runtime_error("State should not be empty");
-  Reset();
+  std::vector<double> optimal_action_ratios, mean_square_errors;
   first_player_->Initialize(all_states_);
   second_player_->Initialize(all_states_);
+  if (auto first_player = dynamic_cast<RLAgent *>(first_player_.get())) {
+    double optimal_action_ratio = first_player->OptimalActionsRatio();
+    optimal_action_ratios.push_back(optimal_action_ratio);
+    mean_square_errors.push_back(first_player->MinSquareError());
+    std::cout << "Epoch 1: " << optimal_action_ratio << std::endl;
+  }
+  Reset();
   for (int i = 0; i < episodes; ++i) {
     while (true) {
       first_player_->Step(this, false);
@@ -144,23 +163,29 @@ void Game::Train(int episodes) {
         break;
       }
     }
+    if (auto first_player = dynamic_cast<RLAgent *>(first_player_.get())) {
+      first_player->UpdateExploration(i);
+    }
+    if (auto second_player = dynamic_cast<RLAgent *>(second_player_.get())) {
+      second_player->UpdateExploration(i);
+    }
     if ((i + 1) % kCheckPoint == 0) {
-      std::cout << std::fixed << std::setprecision(kPrecision) << "Epoch "
-                << i + 1 << ":";
+      std::cout << "Epoch " << i + 1 << ":";
       if (auto first_player = dynamic_cast<RLAgent *>(first_player_.get())) {
-        first_player->UpdateExploration();
-        std::cout << " player 1 optimal actions ratio: "
-                  << first_player->OptimalActionsRatio();
+        double optimal_action_ratio = first_player->OptimalActionsRatio();
+        double mean_square_error = first_player->MinSquareError();
+        optimal_action_ratios.push_back(optimal_action_ratio);
+        mean_square_errors.push_back(mean_square_error);
+        std::cout << optimal_action_ratio << std::endl;
+//        std::cout << " player 1 optimal actions ratio: "
+//                  << optimal_action_ratio << ", ";
+//        std::cout << "mean square error: " << first_player->MinSquareError()
+//                  << std::endl;
       }
-      if (auto second_player = dynamic_cast<RLAgent *>(second_player_.get())) {
-        second_player->UpdateExploration();
-        std::cout << " player 2 optimal actions ratio: "
-                  << second_player->OptimalActionsRatio();
-      }
-      std::cout << std::endl;
     }
     Reset();
   }
+  return std::make_pair(optimal_action_ratios, mean_square_errors);
 }
 
 void swap(Game &lhs, Game &rhs) {

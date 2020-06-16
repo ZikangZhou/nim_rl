@@ -27,11 +27,8 @@ class OptimalAgent : public Agent {
   OptimalAgent &operator=(const OptimalAgent &) = default;
   OptimalAgent &operator=(OptimalAgent &&) = default;
   ~OptimalAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new OptimalAgent(*this));
-  }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new OptimalAgent(std::move(*this)));
   }
   Action Policy(const State &, bool is_evaluation) override;
 };

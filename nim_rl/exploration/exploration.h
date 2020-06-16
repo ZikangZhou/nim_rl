@@ -32,11 +32,11 @@ constexpr double kDefaultMinEpsilon = 0.01;
 class Exploration {
  public:
   Exploration() = default;
-  virtual std::shared_ptr<Exploration> Clone() const & = 0;
-  virtual std::shared_ptr<Exploration> Clone() && = 0;
-  virtual Action Explore(const std::vector<nim_rl::Action> &legal_actions,
-                         const std::vector<nim_rl::Action> &greedy_actions) = 0;
-  virtual void Update() = 0;
+  virtual ~Exploration() = default;
+  virtual std::shared_ptr<Exploration> Clone() const = 0;
+  virtual Action Explore(const std::vector<Action> &legal_actions,
+                         const std::vector<Action> &greedy_actions) = 0;
+  virtual void Update(int episode) = 0;
 };
 
 class EpsilonGreedy : public Exploration {
@@ -48,11 +48,9 @@ class EpsilonGreedy : public Exploration {
       : epsilon_(epsilon),
         epsilon_decay_factor_(epsilon_decay_factor),
         min_epsilon_(min_epsilon) {}
-  std::shared_ptr<Exploration> Clone() const & override {
+  ~EpsilonGreedy() override = default;
+  std::shared_ptr<Exploration> Clone() const override {
     return std::shared_ptr<Exploration>(new EpsilonGreedy(*this));
-  }
-  std::shared_ptr<Exploration> Clone() && override {
-    return std::shared_ptr<Exploration>(new EpsilonGreedy(std::move(*this)));
   }
   Action Explore(const std::vector<Action> &legal_actions,
                  const std::vector<Action> &greedy_actions) override {
@@ -67,16 +65,15 @@ class EpsilonGreedy : public Exploration {
     epsilon_decay_factor_ = decay_epsilon;
   }
   void SetMinEpsilon(double min_epsilon) { min_epsilon_ = min_epsilon; }
-  void Update() override {
-    epsilon_ = std::max(min_epsilon_, epsilon_ * epsilon_decay_factor_);
+  void Update(int episode) override {
+    if ((episode + 1) % 1000 == 0)
+      epsilon_ = std::max(min_epsilon_, epsilon_ * epsilon_decay_factor_);
   }
 
- protected:
+ private:
   double epsilon_;
   double epsilon_decay_factor_;
   double min_epsilon_;
-
- private:
   std::uniform_real_distribution<> dist_epsilon_{0, 1};
   std::mt19937 rng_{std::random_device{}()};
 };

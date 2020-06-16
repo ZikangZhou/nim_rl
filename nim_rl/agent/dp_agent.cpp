@@ -22,9 +22,9 @@ void DPAgent::Initialize(const std::vector<State> &all_states) {
   OptimalAgent optimal_agent;
   for (const auto &state : all_states) {
     if (state.IsTerminal()) {
-      values_.insert({state, kWinReward});
+      (*values_)[state] = kWinReward;
     } else {
-      values_.insert({state, kTieReward});
+      (*values_)[state] = kTieReward;
       std::vector<Action> legal_actions = state.LegalActions();
       legal_actions.emplace_back();
       for (const auto &action : legal_actions) {
@@ -40,7 +40,7 @@ void DPAgent::Initialize(const std::vector<State> &all_states) {
             possibilities.emplace_back(next_state.Child(next_legal_action),
                                        prob);
         }
-        transitions_.insert({{state, action}, possibilities});
+        transitions_[{state, action}] = possibilities;
       }
     }
   }
@@ -49,7 +49,7 @@ void DPAgent::Initialize(const std::vector<State> &all_states) {
 void PolicyIterationAgent::Initialize(const std::vector<State> &all_states) {
   DPAgent::Initialize(all_states);
   for (const auto &state : all_states)
-    policy_.insert({state, SampleAction(state.LegalActions())});
+    policy_[state] = SampleAction(state.LegalActions());
   PolicyIteration(all_states);
 }
 
@@ -68,9 +68,9 @@ void PolicyIterationAgent::PolicyIteration(const
         for (const auto &outcome : possibilities) {
           Reward reward = outcome.first.IsTerminal() ? kLoseReward : kTieReward;
           value += outcome.second * (reward + gamma_
-              * values_[outcome.first.Child(Policy(outcome.first, false))]);
+              * (*values_)[outcome.first.Child(Policy(outcome.first, false))]);
         }
-        Value *stored_value = &values_[state];
+        Value *stored_value = &(*values_)[state];
         delta = std::max(delta, std::abs(*stored_value - value));
         *stored_value = value;
       }
@@ -83,8 +83,8 @@ void PolicyIterationAgent::PolicyIteration(const
       policy_[state] =
           *std::max_element(legal_actions.begin(), legal_actions.end(),
                             [&](const Action &a1, const Action &a2) {
-                              return values_[state.Child(a1)]
-                                  < values_[state.Child(a2)];
+                              return (*values_)[state.Child(a1)]
+                                  < (*values_)[state.Child(a2)];
                             });
       if (old_action != policy_[state]) policy_stable = false;
     }
@@ -111,9 +111,9 @@ void ValueIterationAgent::ValueIteration(const std::vector<State> &all_states) {
       for (const auto &outcome : possibilities) {
         Reward reward = outcome.first.IsTerminal() ? kLoseReward : kTieReward;
         value += outcome.second * (reward + gamma_
-            * values_[outcome.first.Child(Policy(outcome.first, false))]);
+            * (*values_)[outcome.first.Child(Policy(outcome.first, false))]);
       }
-      Value *stored_value = &values_[state];
+      Value *stored_value = &(*values_)[state];
       delta = std::max(delta, std::abs(*stored_value - value));
       *stored_value = value;
     }

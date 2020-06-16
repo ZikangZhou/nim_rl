@@ -31,17 +31,18 @@ class DPAgent : public RLAgent {
   DPAgent &operator=(const DPAgent &) = default;
   DPAgent &operator=(DPAgent &&) = default;
   ~DPAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new DPAgent(*this));
-  }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new DPAgent(std::move(*this)));
   }
   double GetGamma() const { return gamma_; }
   double GetThreshold() const { return threshold_; }
   std::unordered_map<StateAction, std::vector<StateProb>>
   GetTransitions() const { return transitions_; }
   void Initialize(const std::vector<State> &) override;
+  Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
+                    const std::vector<Action> &greedy_actions) override {
+    return SampleAction(greedy_actions);
+  }
   void SetGamma(double gamma) { gamma_ = gamma; }
   void SetThreshold(double threshold) { threshold_ = threshold; }
   template<typename T>
@@ -53,12 +54,6 @@ class DPAgent : public RLAgent {
   std::unordered_map<StateAction, std::vector<StateProb>> transitions_;
   double gamma_;
   double threshold_;
-
- private:
-  Action PolicyImpl(const std::vector<Action> &/*legal_actions*/,
-                    const std::vector<Action> &greedy_actions) override {
-    return SampleAction(greedy_actions);
-  }
 };
 
 class PolicyIterationAgent : public DPAgent {
@@ -71,20 +66,17 @@ class PolicyIterationAgent : public DPAgent {
   PolicyIterationAgent &operator=(const PolicyIterationAgent &) = default;
   PolicyIterationAgent &operator=(PolicyIterationAgent &&) = default;
   ~PolicyIterationAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new PolicyIterationAgent(*this));
   }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new PolicyIterationAgent(std::move(*this)));
+  Action Policy(const State &state, bool is_evaluation) override {
+    return is_evaluation ? DPAgent::Policy(state, is_evaluation)
+                         : policy_[state];
   }
   void Initialize(const std::vector<State> &) override;
 
  private:
   std::unordered_map<State, Action> policy_;
-  Action Policy(const State &state, bool is_evaluation) override {
-    return is_evaluation ? DPAgent::Policy(state, is_evaluation)
-                         : policy_[state];
-  }
   void PolicyIteration(const std::vector<State> &);
 };
 
@@ -98,11 +90,8 @@ class ValueIterationAgent : public DPAgent {
   ValueIterationAgent &operator=(const ValueIterationAgent &) = default;
   ValueIterationAgent &operator=(ValueIterationAgent &&) = default;
   ~ValueIterationAgent() override = default;
-  std::shared_ptr<Agent> Clone() const & override {
+  std::shared_ptr<Agent> Clone() const override {
     return std::shared_ptr<Agent>(new ValueIterationAgent(*this));
-  }
-  std::shared_ptr<Agent> Clone() && override {
-    return std::shared_ptr<Agent>(new ValueIterationAgent(std::move(*this)));
   }
   void Initialize(const std::vector<State> &) override;
 
