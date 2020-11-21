@@ -4,6 +4,7 @@ NimRL provides the environment for playing [the game of Nim](https://en.wikipedi
 and a collection of reinforcement learning algorithms. Currently, NimRL supports
 most of the algorithms in Chapter 4~7 of
 [Reinforcement Learning: An Introduction (2nd Edition)](http://incompleteideas.net/book/RLbook2018.pdf).
+Besides, Deep Q-Network is implemented based on Keras.
 Furthermore, any other 2-player games (e.g., board games like Go, Chess, 
 and Tic-Tac-Toe) can be easily extended on NimRL. The games and the 
 Tabular-based Reinfrocement Learning methods are written in C++, while some 
